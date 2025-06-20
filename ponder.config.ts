@@ -1,9 +1,36 @@
 import { createConfig } from "ponder";
+import type { Abi } from "viem";
 
-import { ZigguratContractAbi } from "./src/abis/ZigguratAbi";
-import { BattleContractAbi } from "./src/abis/BattleAbi";
-import { CharacterContractAbi } from "./src/abis/CharacterAbi";
-import { BasicDeckContractAbi } from "./src/abis/BasicDeckAbi";
+import ZigguratAbi from "./src/contracts/abis/Ziggurat.json";
+import ZigguratSingletonAbi from "./src/contracts/abis/ZigguratSingleton.json";
+import BattleAbi from "./src/contracts/abis/Battle.json";
+import CharacterAbi from "./src/contracts/abis/Character.json";
+import BasicDeckAbi from "./src/contracts/abis/BasicDeck.json";
+import deployments from "./src/contracts/deployments.json";
+
+// Helper function to get deployment info by contract name
+function getDeployment(contractName: string) {
+  const deployment = deployments.find(d => d.contractName === contractName);
+  if (!deployment) {
+    throw new Error(`Deployment not found for contract: ${contractName}`);
+  }
+  return {
+    address: deployment.contractAddress as `0x${string}`,
+    startBlock: parseInt(deployment.blockNumber, 16),
+  };
+}
+
+// Helper function to get all deployments for a contract name (for multiple instances)
+function getAllDeployments(contractName: string) {
+  const contractDeployments = deployments.filter(d => d.contractName === contractName);
+  if (contractDeployments.length === 0) {
+    throw new Error(`No deployments found for contract: ${contractName}`);
+  }
+  return contractDeployments.map(d => ({
+    address: d.contractAddress as `0x${string}`,
+    startBlock: parseInt(d.blockNumber, 16),
+  }));
+}
 
 export default createConfig({
   chains: {
@@ -15,32 +42,29 @@ export default createConfig({
   contracts: {
     Ziggurat: {
       chain: "mainnet",
-      abi: ZigguratContractAbi,
-      address: "0xbff6f4934ebe3f4388051bc995331dbfcadcaabf",
-      startBlock: 0x141280,
+      abi: ZigguratAbi as Abi,
+      ...getDeployment("Ziggurat"),
+    },
+    ZigguratSingleton: {
+      chain: "mainnet",
+      abi: ZigguratSingletonAbi as Abi,
+      ...getDeployment("ZigguratSingleton"),
     },
     Battle: {
       chain: "mainnet",
-      abi: BattleContractAbi,
-      address: "0x0ec717cca68f5f96118e9e926be8414a385a1c6c",
-      startBlock: 0x14127e,
+      abi: BattleAbi as Abi,
+      ...getDeployment("Battle"),
     },
     Character: {
       chain: "mainnet",
-      abi: CharacterContractAbi,
-      address: [
-        "0x18e5b1dc87a706a9d8fc1e12cfeb6e2992b1c7b7",
-        "0x59c2479ea12e9baa41994cb0faa5f2ab20eefbab",
-        "0x3fc7f6214b83468c09f423da1851c430e82f1fdc",
-        "0x3be60dce791090a8b8a1ea77ac10371ff97a1c7b",
-      ],
-      startBlock: 0x141282,
+      abi: CharacterAbi as Abi,
+      address: getAllDeployments("Character").map(d => d.address) as readonly `0x${string}`[],
+      startBlock: Math.min(...getAllDeployments("Character").map(d => d.startBlock)),
     },
     BasicDeck: {
       chain: "mainnet",
-      abi: BasicDeckContractAbi,
-      address: "0x28454068c860e20086cc429147dae5c01456921a",
-      startBlock: 0x14127f,
+      abi: BasicDeckAbi as Abi,
+      ...getDeployment("BasicDeck"),
     },
   },
 });

@@ -1,7 +1,21 @@
 import { onchainTable } from "ponder";
 
 // Ziggurat tables
-export const zigguratParties = onchainTable("zigguratParties", (t) => ({
+export const ziggurat = onchainTable("ziggurat", (t) => ({
+  id: t.text().primaryKey(), // contract address
+  trustedForwarder: t.text(),
+  operator: t.text(),
+  rngSeed: t.text(),
+  readyAimFireFactory: t.text(),
+  deckConfiguration: t.text(),
+  monsterRegistry: t.text(),
+  maxDoorCount: t.bigint(),
+  monsterSigma: t.bigint(),
+  turnDuration: t.bigint(),
+  createdAt: t.bigint(),
+}));
+
+export const zigguratParty = onchainTable("zigguratParty", (t) => ({
   id: t.text().primaryKey(), // partyId
   character: t.text(), // character contract address
   inviter: t.text(), // inviter address
@@ -10,7 +24,7 @@ export const zigguratParties = onchainTable("zigguratParties", (t) => ({
   endedAt: t.bigint(),
 }));
 
-export const zigguratRooms = onchainTable("zigguratRooms", (t) => ({
+export const zigguratRoom = onchainTable("zigguratRoom", (t) => ({
   id: t.text().primaryKey(), // roomHash
   partyId: t.text(), // reference to party
   parentRoomHash: t.text(),
@@ -19,7 +33,7 @@ export const zigguratRooms = onchainTable("zigguratRooms", (t) => ({
   enteredAt: t.bigint(),
 }));
 
-export const zigguratDoors = onchainTable("zigguratDoors", (t) => ({
+export const zigguratDoor = onchainTable("zigguratDoor", (t) => ({
   id: t.text().primaryKey(), // roomHash + doorIndex
   roomHash: t.text(),
   doorIndex: t.bigint(),
@@ -27,7 +41,7 @@ export const zigguratDoors = onchainTable("zigguratDoors", (t) => ({
 }));
 
 // Battle tables
-export const battles = onchainTable("battles", (t) => ({
+export const battle = onchainTable("battle", (t) => ({
   id: t.text().primaryKey(), // battle contract address
   owner: t.text(),
   operator: t.text(),
@@ -42,7 +56,7 @@ export const battles = onchainTable("battles", (t) => ({
   createdAt: t.bigint(),
 }));
 
-export const battlePlayers = onchainTable("battlePlayers", (t) => ({
+export const battlePlayer = onchainTable("battlePlayer", (t) => ({
   id: t.text().primaryKey(), // battleAddress + playerId
   battleId: t.text(),
   playerId: t.bigint(),
@@ -51,7 +65,7 @@ export const battlePlayers = onchainTable("battlePlayers", (t) => ({
   joinedAt: t.bigint(),
 }));
 
-export const battleTurns = onchainTable("battleTurns", (t) => ({
+export const battleTurn = onchainTable("battleTurn", (t) => ({
   id: t.text().primaryKey(), // battleAddress + turnNumber
   battleId: t.text(),
   turnNumber: t.bigint(),
@@ -61,7 +75,7 @@ export const battleTurns = onchainTable("battleTurns", (t) => ({
   endedAt: t.bigint(),
 }));
 
-export const battleActions = onchainTable("battleActions", (t) => ({
+export const battleAction = onchainTable("battleAction", (t) => ({
   id: t.text().primaryKey(), // battleAddress + turnNumber + actionIndex
   battleId: t.text(),
   turnNumber: t.bigint(),
@@ -72,7 +86,7 @@ export const battleActions = onchainTable("battleActions", (t) => ({
 }));
 
 // Character tables
-export const characters = onchainTable("characters", (t) => ({
+export const character = onchainTable("character", (t) => ({
   id: t.text().primaryKey(), // character contract address
   owner: t.text(),
   operator: t.text(),
@@ -80,7 +94,7 @@ export const characters = onchainTable("characters", (t) => ({
   createdAt: t.bigint(),
 }));
 
-export const characterCards = onchainTable("characterCards", (t) => ({
+export const characterCard = onchainTable("characterCard", (t) => ({
   id: t.text().primaryKey(), // characterAddress + cardId
   characterId: t.text(),
   cardId: t.bigint(),
@@ -90,7 +104,7 @@ export const characterCards = onchainTable("characterCards", (t) => ({
 }));
 
 // BasicDeck (BaseCards) tables
-export const basicDeckCards = onchainTable("basicDeckCards", (t) => ({
+export const basicDeckCard = onchainTable("basicDeckCard", (t) => ({
   id: t.text().primaryKey(), // deckAddress + tokenId
   deckId: t.text(), // deck contract address
   tokenId: t.bigint(),
