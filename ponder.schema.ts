@@ -1,8 +1,8 @@
-import { onchainTable } from "ponder";
+import { onchainTable, relations } from "ponder";
 
 // Ziggurat tables
 export const ziggurat = onchainTable("ziggurat", (t) => ({
-  id: t.text().primaryKey(), // contract address
+  address: t.text().primaryKey(), // contract address
   trustedForwarder: t.text(),
   operator: t.text(),
   rngSeed: t.text(),
@@ -15,8 +15,25 @@ export const ziggurat = onchainTable("ziggurat", (t) => ({
   createdAt: t.bigint(),
 }));
 
+export const zigguratRelations = relations(ziggurat, ({ many }) => ({
+  parties: many(zigguratParty),
+  rooms: many(zigguratRoom)
+}));
+
+export const zigguratSingleton = onchainTable("zigguratSingleton", (t) => ({
+  address: t.text().primaryKey(), // contract address
+  trustedForwarder: t.text(),
+  owner: t.text(),
+  operator: t.text(),
+  zigguratDuration: t.bigint(),
+  ziggurat: t.text(), // current ziggurat address
+  lastSetAt: t.bigint(),
+  createdAt: t.bigint(),
+}));
+
 export const zigguratParty = onchainTable("zigguratParty", (t) => ({
-  id: t.text().primaryKey(), // partyId
+  zigguratAddress: t.text(),
+  partyId: t.text().primaryKey(), // partyId
   character: t.text(), // character contract address
   inviter: t.text(), // inviter address
   isPublic: t.boolean(),
@@ -24,13 +41,29 @@ export const zigguratParty = onchainTable("zigguratParty", (t) => ({
   endedAt: t.bigint(),
 }));
 
+export const zigguratPartyRelations = relations(zigguratParty, ({ one }) => ({
+  ziggurat: one(ziggurat, {
+    fields: [zigguratParty.zigguratAddress],
+    references: [ziggurat.address],
+  }),
+}));
+
 export const zigguratRoom = onchainTable("zigguratRoom", (t) => ({
-  id: t.text().primaryKey(), // roomHash
-  partyId: t.text(), // reference to party
+  id: t.text().primaryKey(), // zigguratAddress + parentRoomHash + parentDoorIndex
+  zigguratAddress: t.text(),
+  roomHash: t.text(), // roomHash
   parentRoomHash: t.text(),
-  doorIndex: t.bigint(),
+  parentDoorIndex: t.bigint(),
   revealedAt: t.bigint(),
-  enteredAt: t.bigint(),
+  parentRoomId: t.text(),
+  roomType: t.bigint()
+}));
+
+export const zigguratRoomRelations = relations(zigguratRoom, ({ one }) => ({
+  ziggurat: one(ziggurat, {
+    fields: [zigguratRoom.zigguratAddress],
+    references: [ziggurat.address],
+  }),
 }));
 
 export const zigguratDoor = onchainTable("zigguratDoor", (t) => ({

@@ -1,5 +1,6 @@
-import { createConfig } from "ponder";
-import type { Abi } from "viem";
+import { createConfig, factory } from "ponder";
+import type { Abi, AbiEvent } from "viem";
+import { toEventSelector } from "viem";
 
 import ZigguratAbi from "./src/contracts/abis/Ziggurat.json";
 import ZigguratSingletonAbi from "./src/contracts/abis/ZigguratSingleton.json";
@@ -34,35 +35,40 @@ function getAllDeployments(contractName: string) {
 
 export default createConfig({
   chains: {
-    mainnet: {
+    custom: {
       id: 1,
       rpc: process.env.PONDER_RPC_URL_1!,
     },
   },
   contracts: {
     Ziggurat: {
-      chain: "mainnet",
+      chain: "custom",
       abi: ZigguratAbi as Abi,
-      ...getDeployment("Ziggurat"),
+      address: factory({
+        address: getDeployment("Ziggurat").address,
+        event: ZigguratSingletonAbi.find((val) => val.type === "event" && val.name === "ZigguratSet") as AbiEvent,
+        parameter: "ziggurat"
+      }),
+      startBlock: getDeployment("Ziggurat").startBlock,
     },
     ZigguratSingleton: {
-      chain: "mainnet",
+      chain: "custom",
       abi: ZigguratSingletonAbi as Abi,
       ...getDeployment("ZigguratSingleton"),
     },
     Battle: {
-      chain: "mainnet",
+      chain: "custom",
       abi: BattleAbi as Abi,
       ...getDeployment("Battle"),
     },
     Character: {
-      chain: "mainnet",
+      chain: "custom",
       abi: CharacterAbi as Abi,
       address: getAllDeployments("Character").map(d => d.address) as readonly `0x${string}`[],
       startBlock: Math.min(...getAllDeployments("Character").map(d => d.startBlock)),
     },
     BasicDeck: {
-      chain: "mainnet",
+      chain: "custom",
       abi: BasicDeckAbi as Abi,
       ...getDeployment("BasicDeck"),
     },
