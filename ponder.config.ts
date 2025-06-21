@@ -1,6 +1,5 @@
 import { createConfig, factory } from "ponder";
 import type { Abi, AbiEvent } from "viem";
-import { toEventSelector } from "viem";
 
 import ZigguratAbi from "./src/contracts/abis/Ziggurat.json";
 import ZigguratSingletonAbi from "./src/contracts/abis/ZigguratSingleton.json";
@@ -8,6 +7,7 @@ import BattleAbi from "./src/contracts/abis/Battle.json";
 import CharacterAbi from "./src/contracts/abis/Character.json";
 import BasicDeckAbi from "./src/contracts/abis/BasicDeck.json";
 import deployments from "./src/contracts/deployments.json";
+import CharacterFactoryAbi from "./src/contracts/abis/CharacterFactory.json";
 
 // Helper function to get deployment info by contract name
 function getDeployment(contractName: string) {
@@ -61,11 +61,20 @@ export default createConfig({
       abi: BattleAbi as Abi,
       ...getDeployment("Battle"),
     },
+    CharacterFactory: {
+      chain: "custom",
+      abi: CharacterFactoryAbi as Abi,
+      ...getDeployment("CharacterFactory"),
+    },
     Character: {
       chain: "custom",
       abi: CharacterAbi as Abi,
-      address: getAllDeployments("Character").map(d => d.address) as readonly `0x${string}`[],
-      startBlock: Math.min(...getAllDeployments("Character").map(d => d.startBlock)),
+      address: factory({
+        address: getDeployment("CharacterFactory").address,
+        event: CharacterFactoryAbi.find((val) => val.type === "event" && val.name === "CharacterCreated") as AbiEvent,
+        parameter: "character"
+      }),
+      startBlock: getDeployment("CharacterFactory").startBlock
     },
     BasicDeck: {
       chain: "custom",

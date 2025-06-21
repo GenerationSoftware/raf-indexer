@@ -49,6 +49,7 @@ ponder.on("Ziggurat:RoomRevealedEvent", async ({ event, context }) => {
       parentDoorIndex: event.args.parentDoorIndex,
       revealedAt: event.block.timestamp,
       parentRoomId: parentRoom?.id,
+      roomType: event.args.roomType
     })
     .onConflictDoUpdate({
       roomHash: event.args.roomHash.toLowerCase(),
@@ -80,26 +81,18 @@ ponder.on("Ziggurat:NextRoomChosenEvent", async ({ event, context }) => {
 });
 
 // Ziggurat: RoomEnteredEvent
-ponder.on("Ziggurat:RoomEnteredEvent", async ({ event, context }) => {
+ponder.on("Ziggurat:BattleRoomEnteredEvent", async ({ event, context }) => {
+  console.log("BATTLE ROOM ENTERED", event);
   // This event indicates a party entered a room
-  // We need to update the room record with the party ID and entered timestamp
-  // We'll need to find the current room for this party
-  
-  // For now, we'll create a placeholder room entry
-  // In a real implementation, you'd need to track which room the party is currently in
-  const roomHash = `party-${event.args.partyId}-${event.block.timestamp}`;
-  
+  // Since the schema doesn't have partyId, enteredAt, or doorIndex fields,
+  // we'll need to track this information differently or update the schema
   await context.db
     .insert(zigguratRoom)
     .values({
-      roomHash: roomHash.toLowerCase(),
-      partyId: event.args.partyId.toString(),
-      parentRoomHash: "", // This would need to be determined from previous room
-      doorIndex: 0n, // This would need to be determined from the chosen door
-      enteredAt: event.block.timestamp,
+      id: event.log.address.toLowerCase() + "-" + event.args.parentRoomHash.toLowerCase() + "-" + event.args.parentDoorIndex.toString(),
+      battle: event.args.battle.toLowerCase(),
     })
     .onConflictDoUpdate({
-      partyId: event.args.partyId.toString(),
-      enteredAt: event.block.timestamp,
+      battle: event.args.battle.toLowerCase(),
     });
 });

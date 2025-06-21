@@ -7,15 +7,10 @@ ponder.on("Character:OwnershipTransferred", async ({ event, context }) => {
     .insert(character)
     .values({
       id: event.log.address.toLowerCase(),
-      owner: event.args.newOwner.toLowerCase(),
-      operator: "",
-      name: "",
-      createdAt: event.block.timestamp,
+      owner: event.args.newOwner.toLowerCase()
     })
     .onConflictDoUpdate({
-      set: {
-        owner: event.args.newOwner.toLowerCase(),
-      },
+      owner: event.args.newOwner.toLowerCase(),
     });
 });
 
@@ -25,14 +20,9 @@ ponder.on("Character:OperatorTransferred", async ({ event, context }) => {
     .insert(character)
     .values({
       id: event.log.address.toLowerCase(),
-      owner: "",
-      operator: event.args.newOperator.toLowerCase(),
-      name: "",
-      createdAt: event.block.timestamp,
+      operator: event.args.newOperator.toLowerCase()
     })
     .onConflictDoUpdate({
-      set: {
-        operator: event.args.newOperator.toLowerCase(),
-      },
+      operator: event.args.newOperator.toLowerCase(),
     });
 }); 

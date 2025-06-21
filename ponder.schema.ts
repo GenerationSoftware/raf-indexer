@@ -139,10 +139,10 @@ export const characterCard = onchainTable("characterCard", (t) => ({
 // BasicDeck (BaseCards) tables
 export const basicDeckCard = onchainTable("basicDeckCard", (t) => ({
   id: t.text().primaryKey(), // deckAddress + tokenId
-  deckId: t.text(), // deck contract address
+  deckAddress: t.text(), // deck contract address
   tokenId: t.bigint(),
   owner: t.text(),
-  baseUri: t.text(),
+  actionType: t.bigint(),
   mintedAt: t.bigint(),
   transferredAt: t.bigint(),
 }));

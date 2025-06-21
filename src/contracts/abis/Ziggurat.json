@@ -588,6 +588,25 @@
   },
   {
     "type": "event",
+    "name": "BattleRoomEnteredEvent",
+    "inputs": [
+      {
+        "name": "partyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "battle",
+        "type": "address",
+        "indexed": false,
+        "internalType": "contract Battle"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "NextRoomChosenEvent",
     "inputs": [
       {
@@ -671,19 +690,6 @@
   {
     "type": "event",
     "name": "PartyStartedEvent",
-    "inputs": [
-      {
-        "name": "partyId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "RoomEnteredEvent",
     "inputs": [
       {
         "name": "partyId",
