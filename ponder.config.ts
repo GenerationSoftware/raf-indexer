@@ -45,7 +45,7 @@ export default createConfig({
       chain: "custom",
       abi: ZigguratAbi as Abi,
       address: factory({
-        address: getDeployment("Ziggurat").address,
+        address: getDeployment("ZigguratSingleton").address,
         event: ZigguratSingletonAbi.find((val) => val.type === "event" && val.name === "ZigguratSet") as AbiEvent,
         parameter: "ziggurat"
       }),
