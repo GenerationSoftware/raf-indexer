@@ -4,8 +4,10 @@ import type { Abi, AbiEvent } from "viem";
 import ZigguratAbi from "./src/contracts/abis/Ziggurat.json";
 import ZigguratSingletonAbi from "./src/contracts/abis/ZigguratSingleton.json";
 import BattleAbi from "./src/contracts/abis/Battle.json";
+import BattleFactoryAbi from "./src/contracts/abis/BattleFactory.json";
 import CharacterAbi from "./src/contracts/abis/Character.json";
 import BasicDeckAbi from "./src/contracts/abis/BasicDeck.json";
+import PlayerStatsStorageAbi from "./src/contracts/abis/PlayerStatsStorage.json";
 import deployments from "./src/contracts/deployments.json";
 import CharacterFactoryAbi from "./src/contracts/abis/CharacterFactory.json";
 
@@ -36,7 +38,7 @@ function getAllDeployments(contractName: string) {
 export default createConfig({
   chains: {
     custom: {
-      id: 1,
+      id: 0x82384e,
       rpc: process.env.PONDER_RPC_URL_1!,
     },
   },
@@ -56,10 +58,30 @@ export default createConfig({
       abi: ZigguratSingletonAbi as Abi,
       ...getDeployment("ZigguratSingleton"),
     },
+    BattleFactory: {
+      chain: "custom",
+      abi: BattleFactoryAbi as Abi,
+      ...getDeployment("BattleFactory"),
+    },
     Battle: {
       chain: "custom",
       abi: BattleAbi as Abi,
-      ...getDeployment("Battle"),
+      address: factory({
+        address: getDeployment("BattleFactory").address,
+        event: BattleFactoryAbi.find((val) => val.type === "event" && val.name === "CreatedGame") as AbiEvent,
+        parameter: "gameAddress"
+      }),
+      startBlock: getDeployment("BattleFactory").startBlock
+    },
+    PlayerStatsStorage: {
+      chain: "custom",
+      abi: PlayerStatsStorageAbi as Abi,
+      address: factory({
+        address: getDeployment("BattleFactory").address,
+        event: BattleFactoryAbi.find((val) => val.type === "event" && val.name === "CreatedGame") as AbiEvent,
+        parameter: "playerStatsStorage"
+      }),
+      startBlock: getDeployment("BattleFactory").startBlock
     },
     CharacterFactory: {
       chain: "custom",

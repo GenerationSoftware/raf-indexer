@@ -25,4 +25,4 @@ ponder.on("Character:OperatorTransferred", async ({ event, context }) => {
     .onConflictDoUpdate({
       operator: event.args.newOperator.toLowerCase(),
     });
-}); 
+});

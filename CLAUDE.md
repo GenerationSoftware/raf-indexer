@@ -32,6 +32,7 @@ This is a **Ponder indexer** for the RAF (Ready Aim Fire) blockchain game ecosys
 **Database Schema (`ponder.schema.ts`)**
 - Defines onchain tables using Ponder's schema system
 - Core entities: Ziggurat, Party, Character, Battle, BasicDeck
+- Battle-specific entities: BattlePlayer, BattleTurn, PlayerAction, PlayerStat, TurnEnd
 - Uses relations between tables for complex queries
 - All addresses stored as lowercase text for consistency
 
@@ -43,6 +44,7 @@ This is a **Ponder indexer** for the RAF (Ready Aim Fire) blockchain game ecosys
   - `zigguratSingleton.ts`: Ziggurat lifecycle management
   - `characterFactory.ts`: Character creation events
   - `basicDeck.ts`: Card minting and transfers
+  - `battle.ts`: Battle player joins, actions, game state, turn management
 
 ### Smart Contract Architecture
 
@@ -64,11 +66,19 @@ This is a **Ponder indexer** for the RAF (Ready Aim Fire) blockchain game ecosys
 - Composite IDs using contract addresses and entity IDs
 - Format: `${contractAddress}-${entityId}` (all lowercase)
 - Ensures uniqueness across different contract instances
+- Battle-specific entities use `${battleAddress}-${playerId}-${additional}` format
 
 **Event Processing:**
 - Uses `onConflictDoUpdate` for upsert behavior
 - Addresses always normalized to lowercase
 - Block timestamps used for temporal tracking
+
+**Battle Entity Details:**
+- **BattlePlayer**: Tracks players in battles with location, team, elimination status
+- **BattleTurn**: Records turn timing, duration, and which team's turn
+- **PlayerAction**: Logs card actions with parameters and timing
+- **PlayerStat**: Historical player stat changes (health, energy, block, etc.)
+- **TurnEnd**: Records when individual players end their turns
 
 ## Development Notes
 

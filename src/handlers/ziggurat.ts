@@ -1,5 +1,5 @@
 import { ponder } from "ponder:registry";
-import { ziggurat, party, partyMember, zigguratRoom, zigguratDoor } from "ponder:schema";
+import { ziggurat, party, partyMember, zigguratRoom } from "ponder:schema";
 import ZigguratAbi from "../contracts/abis/Ziggurat.json";
 
 // Ziggurat: PartyCreatedEvent

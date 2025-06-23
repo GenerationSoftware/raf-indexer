@@ -15,11 +15,6 @@ export const ziggurat = onchainTable("ziggurat", (t) => ({
   createdAt: t.bigint(),
 }));
 
-export const zigguratRelations = relations(ziggurat, ({ many }) => ({
-  parties: many(party),
-  rooms: many(zigguratRoom)
-}));
-
 export const zigguratSingleton = onchainTable("zigguratSingleton", (t) => ({
   address: t.text().primaryKey(), // contract address
   trustedForwarder: t.text(),
@@ -51,13 +46,6 @@ export const partyMember = onchainTable("partyMember", (t) => ({
   joinedAt: t.bigint()
 }));
 
-export const partyRelations = relations(party, ({ one }) => ({
-  ziggurat: one(ziggurat, {
-    fields: [party.zigguratAddress],
-    references: [ziggurat.address],
-  }),
-}));
-
 export const zigguratRoom = onchainTable("zigguratRoom", (t) => ({
   id: t.text().primaryKey(), // zigguratAddress + parentRoomHash + parentDoorIndex
   zigguratAddress: t.text(),
@@ -68,13 +56,6 @@ export const zigguratRoom = onchainTable("zigguratRoom", (t) => ({
   parentRoomId: t.text(),
   roomType: t.bigint(),
   battle: t.text(), // battle contract address when room is entered
-}));
-
-export const zigguratRoomRelations = relations(zigguratRoom, ({ one }) => ({
-  ziggurat: one(ziggurat, {
-    fields: [zigguratRoom.zigguratAddress],
-    references: [ziggurat.address],
-  }),
 }));
 
 // Battle tables
@@ -88,6 +69,12 @@ export const battle = onchainTable("battle", (t) => ({
   playerStatsStorage: t.text(),
   enforceAdjacency: t.boolean(),
   currentTurn: t.bigint(),
+  teamAStarts: t.boolean(),
+  teamACount: t.bigint(),
+  teamBCount: t.bigint(),
+  teamAEliminated: t.bigint(),
+  teamBEliminated: t.bigint(),
+  winner: t.bigint(), // 0=tie, 1=teamA, 2=teamB
   gameStartedAt: t.bigint(),
   gameEndedAt: t.bigint(),
   createdAt: t.bigint(),
@@ -112,3 +99,136 @@ export const basicDeckCard = onchainTable("basicDeckCard", (t) => ({
   mintedAt: t.bigint(),
   transferredAt: t.bigint(),
 }));
+
+// Battle Player tables
+export const battlePlayer = onchainTable("battlePlayer", (t) => ({
+  id: t.text().primaryKey(), // battleAddress + playerId
+  battleAddress: t.text(),
+  playerId: t.bigint(),
+  character: t.text(), // character contract address
+  locationX: t.bigint(), // team column (0=A, 1=B)
+  locationY: t.bigint(), // position in team
+  teamA: t.boolean(),
+  joinedAt: t.bigint(),
+  eliminated: t.boolean(),
+  eliminatedAt: t.bigint(),
+  // Player stats from PlayerStatsStorage
+  statsTurn: t.bigint(), // turn when stats were last updated
+  statsData: t.text(), // hex encoded bytes30 stats data
+  statsUpdatedAt: t.bigint(), // timestamp when stats were last updated
+}));
+
+// Battle Turn tables
+export const battleTurn = onchainTable("battleTurn", (t) => ({
+  id: t.text().primaryKey(), // battleAddress + turn
+  battleAddress: t.text(),
+  turn: t.bigint(),
+  startedAt: t.bigint(),
+  duration: t.bigint(),
+  endTurnCount: t.bigint(),
+  teamATurn: t.boolean(),
+}));
+
+// Player Action tables
+export const playerAction = onchainTable("playerAction", (t) => ({
+  id: t.text().primaryKey(), // battleAddress + playerId + turn + timestamp
+  battleAddress: t.text(),
+  playerId: t.bigint(),
+  turn: t.bigint(),
+  cardIndex: t.bigint(),
+  cardActionParams: t.text(), // hex encoded bytes
+  actionedAt: t.bigint(),
+}));
+
+// Turn End tables
+export const turnEnd = onchainTable("turnEnd", (t) => ({
+  id: t.text().primaryKey(), // battleAddress + playerId + turn
+  battleAddress: t.text(),
+  playerId: t.bigint(),
+  turn: t.bigint(),
+  endedAt: t.bigint(),
+}));
+
+// Monster Registry tables
+export const monster = onchainTable("monster", (t) => ({
+  id: t.text().primaryKey(), // character contract address
+  character: t.text(), // character contract address
+  health: t.bigint(),
+  registeredAt: t.bigint(),
+}));
+
+// PlayerStatsStorage tables
+export const playerStatsStorage = onchainTable("playerStatsStorage", (t) => ({
+  id: t.text().primaryKey(), // contract address
+  trustedForwarder: t.text(),
+  owner: t.text(),
+  operator: t.text(), // this is the Battle contract
+  createdAt: t.bigint(),
+}));
+
+// Relations - Simple and safe
+export const zigguratRelations = relations(ziggurat, ({ many }) => ({
+  parties: many(party),
+  rooms: many(zigguratRoom)
+}));
+
+export const partyRelations = relations(party, ({ one }) => ({
+  ziggurat: one(ziggurat, {
+    fields: [party.zigguratAddress],
+    references: [ziggurat.address],
+  }),
+}));
+
+export const zigguratRoomRelations = relations(zigguratRoom, ({ one }) => ({
+  ziggurat: one(ziggurat, {
+    fields: [zigguratRoom.zigguratAddress],
+    references: [ziggurat.address],
+  }),
+}));
+
+export const battleRelations = relations(battle, ({ many }) => ({
+  players: many(battlePlayer),
+  turns: many(battleTurn),
+  actions: many(playerAction),
+  turnEnds: many(turnEnd),
+}));
+
+export const battlePlayerRelations = relations(battlePlayer, ({ one }) => ({
+  battle: one(battle, {
+    fields: [battlePlayer.battleAddress],
+    references: [battle.id],
+  }),
+}));
+
+export const battleTurnRelations = relations(battleTurn, ({ one }) => ({
+  battle: one(battle, {
+    fields: [battleTurn.battleAddress],
+    references: [battle.id],
+  }),
+}));
+
+export const playerActionRelations = relations(playerAction, ({ one }) => ({
+  battle: one(battle, {
+    fields: [playerAction.battleAddress],
+    references: [battle.id],
+  }),
+  player: one(battlePlayer, {
+    fields: [playerAction.battleAddress, playerAction.playerId],
+    references: [battlePlayer.battleAddress, battlePlayer.playerId],
+  }),
+}));
+
+export const turnEndRelations = relations(turnEnd, ({ one }) => ({
+  battle: one(battle, {
+    fields: [turnEnd.battleAddress],
+    references: [battle.id],
+  }),
+  player: one(battlePlayer, {
+    fields: [turnEnd.battleAddress, turnEnd.playerId],
+    references: [battlePlayer.battleAddress, battlePlayer.playerId],
+  }),
+}));
+
+// Note: Cannot define a direct relation between Character and BasicDeckCard
+// since basicDeckCard.owner is just an address that may not reference a Character.
+// To get cards owned by a Character, query basicDeckCard with owner filter instead.

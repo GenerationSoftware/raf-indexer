@@ -1,8 +1,9 @@
 import { ponder } from "ponder:registry";
 import { character } from "ponder:schema";
 
-// Character: OwnershipTransferred
+// CharacterFactory: CharacterCreated
 ponder.on("CharacterFactory:CharacterCreated", async ({ event, context }) => {
+
   await context.db
     .insert(character)
     .values({
@@ -17,4 +18,5 @@ ponder.on("CharacterFactory:CharacterCreated", async ({ event, context }) => {
       operator: event.args.operator.toLowerCase(),
       name: event.args.name,
     });
+
 });
