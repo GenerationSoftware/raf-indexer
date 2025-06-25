@@ -6,8 +6,9 @@ import ZigguratAbi from "../contracts/abis/Ziggurat.json";
 ponder.on("Ziggurat:PartyCreatedEvent", async ({ event, context }) => {
   console.log("PARTY CREATED", {
     partyId: event.args.partyId.toString(),
-    character: event.args.character.toLowerCase(),
+    leader: event.args.leader.toLowerCase(),
     isPublic: event.args.isPublic,
+    inviter: event.args.inviter.toLowerCase(),
     zigguratAddress: event.log.address.toLowerCase()
   });
   await context.db
@@ -16,15 +17,21 @@ ponder.on("Ziggurat:PartyCreatedEvent", async ({ event, context }) => {
       id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
       zigguratAddress: event.log.address.toLowerCase(),
       partyId: event.args.partyId.toString(),
-      character: event.args.character.toLowerCase(),
+      leader: event.args.leader.toLowerCase(),
       isPublic: event.args.isPublic,
-      isStarted: false,
-      isEnded: false,
+      inviter: event.args.inviter.toLowerCase(),
+      roomHash: "", // Default empty - will be set when party enters a room
+      battleAddress: "", // Default empty - will be set when party enters a room
+      state: BigInt(0), // CREATED
+      chosenDoor: BigInt(0), // Default 0 - no door chosen yet
       createdAt: event.block.timestamp,
+      startedAt: BigInt(0),
+      endedAt: BigInt(0),
     })
     .onConflictDoUpdate({
-      character: event.args.character.toLowerCase(),
+      leader: event.args.leader.toLowerCase(),
       isPublic: event.args.isPublic,
+      inviter: event.args.inviter.toLowerCase(),
     });
 });
 
@@ -50,11 +57,21 @@ ponder.on("Ziggurat:PartyStartedEvent", async ({ event, context }) => {
     .insert(party)
     .values({
       id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
-      isStarted: true,
+      zigguratAddress: event.log.address.toLowerCase(),
+      partyId: event.args.partyId.toString(),
+      leader: "", // Will be updated by onConflictDoUpdate
+      isPublic: false, // Will be updated by onConflictDoUpdate
+      inviter: "", // Will be updated by onConflictDoUpdate
+      roomHash: "", // Will be updated by onConflictDoUpdate
+      battleAddress: "", // Will be updated by onConflictDoUpdate
+      state: BigInt(1), // DOOR_CHOSEN
+      chosenDoor: BigInt(0), // Will be updated by onConflictDoUpdate
+      createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
       startedAt: event.block.timestamp,
+      endedAt: BigInt(0), // Will be updated by onConflictDoUpdate
     })
     .onConflictDoUpdate({
-      isStarted: true,
+      state: BigInt(1), // DOOR_CHOSEN
       startedAt: event.block.timestamp,
     });
 });
@@ -62,70 +79,160 @@ ponder.on("Ziggurat:PartyStartedEvent", async ({ event, context }) => {
 // Ziggurat: RoomRevealedEvent
 ponder.on("Ziggurat:RoomRevealedEvent", async ({ event, context }) => {
   // Try to find the parent room by its roomHash
-  const parentRoom = await context.db.find(zigguratRoom, { roomHash: event.args.parentRoomHash.toLowerCase() });
+  console.log("ROOM REVEALED, finding parent hash", event.args.roomHash.toLowerCase());
+  
+  const parentRoom = await context.db.find(zigguratRoom, { roomHash: event.args.roomHash.toLowerCase() });
+  console.log("Parent room found:", parentRoom?.id);
+
+  // Get the depth of the newly revealed room using contract call
+  const roomData = await context.client.readContract({
+    address: event.log.address as `0x${string}`,
+    abi: ZigguratAbi,
+    functionName: "rooms",
+    args: [event.args.childRoomHash]
+  });
+  const roomDepth = roomData.depth;
 
   await context.db
     .insert(zigguratRoom)
     .values({
-      id: event.log.address.toLowerCase() + "-" + event.args.parentRoomHash.toLowerCase() + "-" + event.args.parentDoorIndex.toString(),
+      id: event.args.childRoomHash.toLowerCase(),
       zigguratAddress: event.log.address.toLowerCase(),
-      roomHash: event.args.roomHash.toLowerCase(),
-      parentRoomHash: event.args.parentRoomHash.toLowerCase(),
-      parentDoorIndex: event.args.parentDoorIndex,
+      roomHash: event.args.childRoomHash.toLowerCase(),
+      parentRoomHash: event.args.roomHash.toLowerCase(),
+      parentDoorIndex: event.args.doorIndex,
       revealedAt: event.block.timestamp,
-      parentRoomId: parentRoom?.id || null,
-      roomType: event.args.roomType
+      parentRoomId: event.args.roomHash.toLowerCase(), // Use roomHash as parentRoomId
+      roomType: 0n, // Default value since roomType is not in the event
+      depth: roomDepth,
+      battle: "",
     })
     .onConflictDoUpdate({
-      roomHash: event.args.roomHash.toLowerCase(),
+      roomHash: event.args.childRoomHash.toLowerCase(),
       revealedAt: event.block.timestamp,
+      depth: roomDepth,
     });
 });
 
 // Ziggurat: NextRoomChosenEvent
 ponder.on("Ziggurat:NextRoomChosenEvent", async ({ event, context }) => {
-  // This event indicates a door was chosen for the next room
-  // We need to find the current room hash for this party to create the door record
-  // For now, we'll create a door record with a placeholder room hash
-  // In a real implementation, you might need to track the current room per party
-  
-  // const doorId = `${event.args.partyId}-${event.args.parentDoorIndex}`;
-  
-  // await context.db
-  //   .insert(zigguratDoor)
-  //   .values({
-  //     id: doorId,
-  //     roomHash: "", // This would need to be determined from party's current room
-  //     doorIndex: event.args.parentDoorIndex,
-  //     chosenAt: event.block.timestamp,
-  //   })
-  //   .onConflictDoUpdate({
-  //     doorIndex: event.args.parentDoorIndex,
-  //     chosenAt: event.block.timestamp,
-  //   });
+  // Update the party to mark that a door has been chosen
+  await context.db
+    .insert(party)
+    .values({
+      id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
+      zigguratAddress: event.log.address.toLowerCase(),
+      partyId: event.args.partyId.toString(),
+      leader: "", // Will be updated by onConflictDoUpdate
+      isPublic: false, // Will be updated by onConflictDoUpdate
+      inviter: "", // Will be updated by onConflictDoUpdate
+      roomHash: "", // Will be updated by onConflictDoUpdate
+      battleAddress: "", // Will be updated by onConflictDoUpdate
+      state: BigInt(1), // DOOR_CHOSEN
+      chosenDoor: event.args.doorIndex,
+      createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
+      startedAt: BigInt(0), // Will be updated by onConflictDoUpdate
+      endedAt: BigInt(0), // Will be updated by onConflictDoUpdate
+    })
+    .onConflictDoUpdate({
+      state: BigInt(1), // DOOR_CHOSEN
+      chosenDoor: event.args.doorIndex,
+    });
 });
 
-// Ziggurat: BattleRoomEnteredEvent
-ponder.on("Ziggurat:BattleRoomEnteredEvent", async ({ event, context }) => {
-  console.log("BATTLE ROOM ENTERED", event);
-  
-  // // Get the party's current location to find the room they're entering
-  // const partyLocation = await context.client.readContract({
-  //   address: event.log.address as `0x${string}`,
-  //   abi: ZigguratAbi,
-  //   functionName: "partyLocation",
-  //   args: [event.args.partyId]
-  // });
-
-  // const roomId = event.log.address.toLowerCase() + "-" + partyLocation.parentRoomHash.toLowerCase() + "-" + partyLocation.parentDoorIndex.toString();
-  
-  // // Update the existing room record with the battle information
-  // await context.db
-  //   .update(zigguratRoom)
-  //   .set({
-  //     battle: event.args.battle.toLowerCase(),
-  //   })
-  //   .where({ id: roomId });
-    
-  // console.log(`Party ${event.args.partyId} entered battle room ${roomId} with battle ${event.args.battle}`);
+// Ziggurat: PartyEndedEvent  
+ponder.on("Ziggurat:PartyEndedEvent", async ({ event, context }) => {
+  await context.db
+    .insert(party)
+    .values({
+      id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
+      zigguratAddress: event.log.address.toLowerCase(),
+      partyId: event.args.partyId.toString(),
+      leader: "", // Will be updated by onConflictDoUpdate
+      isPublic: false, // Will be updated by onConflictDoUpdate
+      inviter: "", // Will be updated by onConflictDoUpdate
+      roomHash: "", // Will be updated by onConflictDoUpdate
+      battleAddress: "", // Will be updated by onConflictDoUpdate
+      state: BigInt(4), // ESCAPED
+      chosenDoor: BigInt(0), // Will be updated by onConflictDoUpdate
+      createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
+      startedAt: BigInt(0), // Will be updated by onConflictDoUpdate
+      endedAt: event.block.timestamp,
+    })
+    .onConflictDoUpdate({
+      state: BigInt(4), // ESCAPED
+      endedAt: event.block.timestamp,
+    });
 });
+
+
+// Ziggurat: RoomEnteredEvent
+ponder.on("Ziggurat:RoomEnteredEvent", async ({ event, context }) => {
+  // Get the battle address for this party from the contract
+  let battleAddress = "";
+  try {
+    const battleResult = await context.client.readContract({
+      address: event.log.address as `0x${string}`,
+      abi: ZigguratAbi,
+      functionName: "partyBattles",
+      args: [event.args.partyId, event.args.roomHash]
+    });
+    battleAddress = battleResult?.toLowerCase() || "";
+    console.log("PARTY BATTLE ADDRESS", {
+      partyId: event.args.partyId.toString(),
+      battleAddress: battleAddress
+    });
+  } catch (error) {
+    console.log("Failed to read party battle address:", error);
+  }
+
+  // Update the party's current room location and set state to IN_ROOM
+  await context.db
+    .insert(party)
+    .values({
+      id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
+      zigguratAddress: event.log.address.toLowerCase(),
+      partyId: event.args.partyId.toString(),
+      leader: "", // Will be updated by onConflictDoUpdate
+      isPublic: false, // Will be updated by onConflictDoUpdate
+      inviter: "", // Will be updated by onConflictDoUpdate
+      roomHash: event.args.roomHash.toLowerCase(),
+      battleAddress: battleAddress,
+      state: BigInt(2), // IN_ROOM
+      chosenDoor: BigInt(0), // Reset when entering new room
+      createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
+      startedAt: BigInt(0), // Will be updated by onConflictDoUpdate
+      endedAt: BigInt(0), // Will be updated by onConflictDoUpdate
+    })
+    .onConflictDoUpdate({
+      roomHash: event.args.roomHash.toLowerCase(),
+      battleAddress: battleAddress,
+      state: BigInt(2), // IN_ROOM
+      chosenDoor: BigInt(0), // Reset when entering new room
+    });
+});
+
+// Ziggurat: ZigguratClosedEvent
+ponder.on("Ziggurat:ZigguratClosedEvent", async ({ event, context }) => {
+  // Update the ziggurat to mark it as closed
+  await context.db
+    .insert(ziggurat)
+    .values({
+      address: event.log.address.toLowerCase(),
+      trustedForwarder: "", // Will be updated by onConflictDoUpdate
+      operator: "", // Will be updated by onConflictDoUpdate
+      rngSeed: "", // Will be updated by onConflictDoUpdate
+      readyAimFireFactory: "", // Will be updated by onConflictDoUpdate
+      deckConfiguration: "", // Will be updated by onConflictDoUpdate
+      monsterRegistry: "", // Will be updated by onConflictDoUpdate
+      maxDoorCount: BigInt(0), // Will be updated by onConflictDoUpdate
+      monsterSigma: BigInt(0), // Will be updated by onConflictDoUpdate
+      turnDuration: BigInt(0), // Will be updated by onConflictDoUpdate
+      isClosed: true,
+      createdAt: event.block.timestamp,
+    })
+    .onConflictDoUpdate({
+      isClosed: true,
+    });
+});
+

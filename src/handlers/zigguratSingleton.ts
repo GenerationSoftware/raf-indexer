@@ -59,6 +59,7 @@ ponder.on("ZigguratSingleton:ZigguratSet", async ({ event, context }) => {
     trustedForwarder,
     operator,
     rngSeed,
+    rootRoomHash,
     readyAimFireFactory,
     deckConfiguration,
     monsterRegistry,
@@ -71,6 +72,7 @@ ponder.on("ZigguratSingleton:ZigguratSet", async ({ event, context }) => {
       { address: zigguratAddress, abi: ZigguratAbi, functionName: 'trustedForwarder' },
       { address: zigguratAddress, abi: ZigguratAbi, functionName: 'operator' },
       { address: zigguratAddress, abi: ZigguratAbi, functionName: 'rngSeed' },
+      { address: zigguratAddress, abi: ZigguratAbi, functionName: 'rootRoomHash' },
       { address: zigguratAddress, abi: ZigguratAbi, functionName: 'readyAimFireFactory' },
       { address: zigguratAddress, abi: ZigguratAbi, functionName: 'deckConfiguration' },
       { address: zigguratAddress, abi: ZigguratAbi, functionName: 'monsterRegistry' },
@@ -85,6 +87,8 @@ ponder.on("ZigguratSingleton:ZigguratSet", async ({ event, context }) => {
     trustedForwarder: trustedForwarder.result?.toLowerCase() || '',
     operator: operator.result?.toLowerCase() || '',
     rngSeed: rngSeed.result || '',
+    rootRoomHash: rootRoomHash.result?.toLowerCase() || '',
+    isClosed: false,
     readyAimFireFactory: readyAimFireFactory.result?.toLowerCase() || '',
     deckConfiguration: deckConfiguration.result?.toLowerCase() || '',
     monsterRegistry: monsterRegistry.result?.toLowerCase() || '',
@@ -94,13 +98,19 @@ ponder.on("ZigguratSingleton:ZigguratSet", async ({ event, context }) => {
     createdAt: event.block.timestamp,
   });
 
+  // Create root room
+  console.log("Creating root room with hash:", rootRoomHash.result);
   await context.db.insert(zigguratRoom).values({
-    id: zigguratAddress.toLowerCase() + "-NO_PARENT_ROOM" + "-0",
+    id: rootRoomHash.result?.toLowerCase() || '',
     zigguratAddress: zigguratAddress.toLowerCase(),
-    roomHash: rngSeed.result,
-    parentRoomHash: "NO_PARENT_ROOM",
-    parentDoorIndex: 0,
+    roomHash: rootRoomHash.result?.toLowerCase() || '',
+    parentRoomHash: "",
+    parentRoomId: "",
+    parentDoorIndex: 0n,
     revealedAt: event.block.timestamp,
+    roomType: 0n, // Root room type
+    depth: 0n, // Root is depth 0
+    battle: "",
   });
   
   await context.db

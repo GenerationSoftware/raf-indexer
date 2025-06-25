@@ -98,3 +98,7 @@ This is a **Ponder indexer** for the RAF (Ready Aim Fire) blockchain game ecosys
 - All contract addresses stored lowercase for consistency
 - Deployment info centralized in `deployments.json`
 - Helper functions in config handle address/block parsing
+
+## Common Issues
+
+- **Use Ponder-style ORM**: Instead of context.db.update() use context.db.insert().values()...onConflictDoUpdate()
