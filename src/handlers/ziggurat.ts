@@ -42,11 +42,11 @@ ponder.on("Ziggurat:PartyMemberJoinedEvent", async ({ event, context }) => {
     .values({
       id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString() + "-" + event.args.character.toLowerCase(),
       partyId: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
-      character: event.args.character.toLowerCase(),
+      characterId: event.args.character.toLowerCase(),
       joinedAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
-      character: event.args.character.toLowerCase(),
+      characterId: event.args.character.toLowerCase(),
       joinedAt: event.block.timestamp,
     });
 });

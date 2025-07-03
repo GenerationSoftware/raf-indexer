@@ -47,7 +47,7 @@ export const party = onchainTable("party", (t) => ({
 export const partyMember = onchainTable("partyMember", (t) => ({
   id: t.text().primaryKey(), // partyId + character
   partyId: t.text(),
-  character: t.text(),
+  characterId: t.text(),
   joinedAt: t.bigint()
 }));
 
@@ -128,20 +128,8 @@ export const battlePlayer = onchainTable("battlePlayer", (t) => ({
   eliminated: t.boolean(),
   eliminatedAt: t.bigint(),
   // Player stats from PlayerStatsStorage
-  statsTurn: t.bigint(), // turn when stats were last updated
+  statsLastUpdatedTurn: t.bigint(), // turn when stats were last updated
   statsData: t.text(), // hex encoded bytes30 stats data
-  statsUpdatedAt: t.bigint(), // timestamp when stats were last updated
-}));
-
-// Battle Turn tables
-export const battleTurn = onchainTable("battleTurn", (t) => ({
-  id: t.text().primaryKey(), // battleAddress + turn
-  battleAddress: t.text(),
-  turn: t.bigint(),
-  startedAt: t.bigint(),
-  duration: t.bigint(),
-  endTurnCount: t.bigint(),
-  teamATurn: t.boolean(),
 }));
 
 // Player Action tables
@@ -212,6 +200,10 @@ export const partyMemberRelations = relations(partyMember, ({ one }) => ({
     fields: [partyMember.partyId],
     references: [party.id],
   }),
+  character: one(character, {
+    fields: [partyMember.characterId],
+    references: [character.id],
+  })
 }));
 
 export const zigguratRoomRelations = relations(zigguratRoom, ({ one, many }) => ({
@@ -238,7 +230,6 @@ export const characterCardRelations = relations(characterCard, ({ one }) => ({
 
 export const battleRelations = relations(battle, ({ many }) => ({
   players: many(battlePlayer),
-  turns: many(battleTurn),
   actions: many(playerAction),
   turnEnds: many(turnEnd)
 }));
@@ -252,13 +243,6 @@ export const battlePlayerRelations = relations(battlePlayer, ({ one }) => ({
     fields: [battlePlayer.character],
     references: [character.id]
   })
-}));
-
-export const battleTurnRelations = relations(battleTurn, ({ one }) => ({
-  battle: one(battle, {
-    fields: [battleTurn.battleAddress],
-    references: [battle.id],
-  }),
 }));
 
 export const playerActionRelations = relations(playerAction, ({ one }) => ({
@@ -285,5 +269,6 @@ export const turnEndRelations = relations(turnEnd, ({ one }) => ({
 
 export const characterRelations = relations(character, ({ many }) => ({
   cards: many(characterCard),
-  battlePlayers: many(battlePlayer)
+  battlePlayers: many(battlePlayer),
+  partyMembers: many(partyMember)
 }));

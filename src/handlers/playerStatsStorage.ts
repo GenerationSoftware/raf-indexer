@@ -1,5 +1,6 @@
 import { ponder } from "ponder:registry";
 import { battlePlayer, battle, playerStatsStorage } from "ponder:schema";
+import PlayerStatsStorageAbi from "../contracts/abis/PlayerStatsStorage.json";
 
 // PlayerStatsStorage: PlayerStatUpdatedEvent
 ponder.on("PlayerStatsStorage:PlayerStatUpdatedEvent", async ({ event, context }) => {
@@ -10,24 +11,32 @@ ponder.on("PlayerStatsStorage:PlayerStatUpdatedEvent", async ({ event, context }
     statsData: event.args.stats.stats
   });
 
-  // The challenge here is that we need to find the battlePlayer record to update
-  // But we only have the playerId from the event, not the battle address
-  // We'll need to find all battlePlayer records with this playerId and update them
-  // This assumes playerId is unique across all battles, or we update all instances
-
-  // Find the battle that uses this PlayerStatsStorage contract
-  // The PlayerStatsStorage operator is the Battle contract
-  const battleRecord = await context.db.find(battle, { 
-    playerStatsStorage: event.log.address.toLowerCase() 
-  });
-
-  if (!battleRecord) {
-    console.log("No battle found for PlayerStatsStorage:", event.log.address.toLowerCase());
+  // Read the operator from the PlayerStatsStorage contract (this is the battle address)
+  let battleAddress = "";
+  try {
+    const operatorResult = await context.client.readContract({
+      address: event.log.address as `0x${string}`,
+      abi: PlayerStatsStorageAbi,
+      functionName: "operator",
+      args: []
+    });
+    battleAddress = operatorResult?.toLowerCase() || "";
+    console.log("PLAYER STATS STORAGE OPERATOR", {
+      playerStatsStorage: event.log.address.toLowerCase(),
+      battleAddress: battleAddress
+    });
+  } catch (error) {
+    console.log("Failed to read PlayerStatsStorage operator:", error);
     return;
   }
 
-  // Now find the specific battlePlayer record
-  const battlePlayerId = battleRecord.id + "-" + event.args.playerId.toString();
+  if (!battleAddress) {
+    console.log("No operator found for PlayerStatsStorage:", event.log.address.toLowerCase());
+    return;
+  }
+
+  // Now find the specific battlePlayer record using battle address and playerId
+  const battlePlayerId = battleAddress + "-" + event.args.playerId.toString();
   const existingPlayer = await context.db.find(battlePlayer, { id: battlePlayerId });
 
   if (!existingPlayer) {
@@ -49,14 +58,12 @@ ponder.on("PlayerStatsStorage:PlayerStatUpdatedEvent", async ({ event, context }
       joinedAt: existingPlayer.joinedAt,
       eliminated: existingPlayer.eliminated,
       eliminatedAt: existingPlayer.eliminatedAt,
-      statsTurn: BigInt(event.args.stats.turn),
+      statsLastUpdatedTurn: BigInt(event.args.stats.turn),
       statsData: event.args.stats.stats,
-      statsUpdatedAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
-      statsTurn: BigInt(event.args.stats.turn),
+      statsLastUpdatedTurn: BigInt(event.args.stats.turn),
       statsData: event.args.stats.stats,
-      statsUpdatedAt: event.block.timestamp,
     });
 
   console.log("UPDATED BATTLE PLAYER STATS", {

@@ -2,7 +2,6 @@ import { ponder } from "ponder:registry";
 import { 
   battle, 
   battlePlayer, 
-  battleTurn, 
   playerAction, 
   turnEnd 
 } from "ponder:schema";
@@ -68,9 +67,8 @@ ponder.on("Battle:PlayerJoinedEvent", async ({ event, context }) => {
       eliminated: false,
       eliminatedAt: BigInt(0),
       // Set stats from PlayerStatsStorage contract
-      statsTurn: BigInt(currentStats.turn),
+      statsLastUpdatedTurn: BigInt(currentStats.turn),
       statsData: currentStats.stats,
-      statsUpdatedAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
       character: event.args.character.toLowerCase(),
@@ -78,9 +76,8 @@ ponder.on("Battle:PlayerJoinedEvent", async ({ event, context }) => {
       locationY: event.args.locationY,
       joinedAt: event.block.timestamp,
       // Update stats on conflict as well
-      statsTurn: BigInt(currentStats.turn),
+      statsLastUpdatedTurn: BigInt(currentStats.turn),
       statsData: currentStats.stats,
-      statsUpdatedAt: event.block.timestamp,
     });
 
   // Update battle team counts
@@ -150,22 +147,6 @@ ponder.on("Battle:GameStartedEvent", async ({ event, context }) => {
       teamAStarts: event.args.teamAStarts,
       currentTurn: BigInt(1),
     });
-
-  // Create first turn record
-  const battleRecord = await context.db.find(battle, { id: event.log.address.toLowerCase() });
-  const turnDuration = battleRecord?.turnDuration || BigInt(0);
-
-  await context.db
-    .insert(battleTurn)
-    .values({
-      id: event.log.address.toLowerCase() + "-1",
-      battleAddress: event.log.address.toLowerCase(),
-      turn: BigInt(1),
-      startedAt: event.args.startedAt,
-      duration: turnDuration,
-      endTurnCount: BigInt(0),
-      teamATurn: event.args.teamAStarts,
-    });
 });
 
 // Battle: NextTurnEvent
@@ -185,27 +166,6 @@ ponder.on("Battle:NextTurnEvent", async ({ event, context }) => {
     })
     .onConflictDoUpdate({
       currentTurn: event.args.turn,
-    });
-
-  // Get battle info to determine team turn
-  const battleRecord = await context.db.find(battle, { id: event.log.address.toLowerCase() });
-  const teamAStarts = battleRecord?.teamAStarts || false;
-  const turnDuration = battleRecord?.turnDuration || BigInt(0);
-  
-  // Determine which team's turn it is based on turn number and who started
-  const teamATurn = teamAStarts ? event.args.turn % BigInt(2) === BigInt(1) : event.args.turn % BigInt(2) === BigInt(0);
-
-  // Create new turn record
-  await context.db
-    .insert(battleTurn)
-    .values({
-      id: event.log.address.toLowerCase() + "-" + event.args.turn.toString(),
-      battleAddress: event.log.address.toLowerCase(),
-      turn: event.args.turn,
-      startedAt: event.block.timestamp,
-      duration: turnDuration,
-      endTurnCount: BigInt(0),
-      teamATurn: teamATurn,
     });
 });
 
@@ -227,28 +187,6 @@ ponder.on("Battle:EndedTurnEvent", async ({ event, context }) => {
       turn: event.args.turn,
       endedAt: event.block.timestamp,
     });
-
-  // Update turn end count
-  const currentTurn = await context.db.find(battleTurn, { 
-    id: event.log.address.toLowerCase() + "-" + event.args.turn.toString() 
-  });
-  
-  if (currentTurn) {
-    await context.db
-      .insert(battleTurn)
-      .values({
-        id: currentTurn.id,
-        battleAddress: event.log.address.toLowerCase(),
-        turn: event.args.turn,
-        startedAt: currentTurn.startedAt,
-        duration: currentTurn.duration,
-        endTurnCount: (currentTurn.endTurnCount || BigInt(0)) + BigInt(1),
-        teamATurn: currentTurn.teamATurn,
-      })
-      .onConflictDoUpdate({
-        endTurnCount: (currentTurn.endTurnCount || BigInt(0)) + BigInt(1),
-      });
-  }
 });
 
 // Battle: OwnershipTransferred
