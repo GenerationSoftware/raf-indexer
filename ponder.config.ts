@@ -1,6 +1,7 @@
 import { createConfig, factory } from "ponder";
 import type { Abi, AbiEvent } from "viem";
 
+import MonsterRegistryAbi from "./src/contracts/abis/MonsterRegistry.json";
 import ZigguratAbi from "./src/contracts/abis/Ziggurat.json";
 import ZigguratSingletonAbi from "./src/contracts/abis/ZigguratSingleton.json";
 import BattleAbi from "./src/contracts/abis/Battle.json";
@@ -23,18 +24,6 @@ function getDeployment(contractName: string) {
   };
 }
 
-// Helper function to get all deployments for a contract name (for multiple instances)
-function getAllDeployments(contractName: string) {
-  const contractDeployments = deployments.filter(d => d.contractName === contractName);
-  if (contractDeployments.length === 0) {
-    throw new Error(`No deployments found for contract: ${contractName}`);
-  }
-  return contractDeployments.map(d => ({
-    address: d.contractAddress as `0x${string}`,
-    startBlock: parseInt(d.blockNumber, 16),
-  }));
-}
-
 export default createConfig({
   chains: {
     custom: {
@@ -52,6 +41,11 @@ export default createConfig({
         parameter: "ziggurat"
       }),
       startBlock: getDeployment("Ziggurat").startBlock,
+    },
+    MonsterRegistry: {
+      chain: "custom",
+      abi: MonsterRegistryAbi as Abi,
+      ...getDeployment("MonsterRegistry"),
     },
     ZigguratSingleton: {
       chain: "custom",

@@ -37,7 +37,33 @@
   },
   {
     "type": "function",
+    "name": "MAX_DOORS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "MAX_DOOR_COUNT",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MIN_DEPTH_FOR_EMPTY",
     "inputs": [],
     "outputs": [
       {
@@ -209,6 +235,25 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getMonsterIndex",
+    "inputs": [
+      {
+        "name": "_roomHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -606,6 +651,19 @@
   },
   {
     "type": "function",
+    "name": "startBattle",
+    "inputs": [
+      {
+        "name": "_partyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "startParty",
     "inputs": [
       {
@@ -642,6 +700,19 @@
       },
       {
         "name": "doorIndex",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PartyCancelledEvent",
+    "inputs": [
+      {
+        "name": "partyId",
         "type": "uint256",
         "indexed": true,
         "internalType": "uint256"
@@ -783,6 +854,11 @@
   },
   {
     "type": "error",
+    "name": "AlreadyInPartyError",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "AlreadyJoinedError",
     "inputs": []
   },
@@ -835,6 +911,11 @@
   },
   {
     "type": "error",
+    "name": "NotBattleRoomError",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "OnlyCharacterOwnerError",
     "inputs": []
   },
@@ -856,6 +937,11 @@
   {
     "type": "error",
     "name": "PartyIsPublicError",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "RoomCompletedError",
     "inputs": []
   },
   {

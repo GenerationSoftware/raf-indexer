@@ -1,6 +1,7 @@
 import { ponder } from "ponder:registry";
 import { ziggurat, party, partyMember, zigguratRoom } from "ponder:schema";
 import ZigguratAbi from "../contracts/abis/Ziggurat.json";
+import MonsterRegistryAbi from "../contracts/abis/MonsterRegistry.json";
 
 // Ziggurat: PartyCreatedEvent
 ponder.on("Ziggurat:PartyCreatedEvent", async ({ event, context }) => {
@@ -24,6 +25,7 @@ ponder.on("Ziggurat:PartyCreatedEvent", async ({ event, context }) => {
       battleAddress: "", // Default empty - will be set when party enters a room
       state: BigInt(0), // CREATED
       chosenDoor: BigInt(0), // Default 0 - no door chosen yet
+      createdTxHash: event.transaction.hash,
       createdAt: event.block.timestamp,
       startedAt: BigInt(0),
       endedAt: BigInt(0),
@@ -66,6 +68,7 @@ ponder.on("Ziggurat:PartyStartedEvent", async ({ event, context }) => {
       battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(1), // DOOR_CHOSEN
       chosenDoor: BigInt(0), // Will be updated by onConflictDoUpdate
+      createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
       startedAt: event.block.timestamp,
       endedAt: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -84,14 +87,56 @@ ponder.on("Ziggurat:RoomRevealedEvent", async ({ event, context }) => {
   const parentRoom = await context.db.find(zigguratRoom, { roomHash: event.args.roomHash.toLowerCase() });
   console.log("Parent room found:", parentRoom?.id);
 
-  // Get the depth of the newly revealed room using contract call
-  const roomData = await context.client.readContract({
-    address: event.log.address as `0x${string}`,
-    abi: ZigguratAbi,
-    functionName: "rooms",
-    args: [event.args.childRoomHash]
+  // Get the ziggurat data to find monster registry
+  const zigguratData = await context.db.find(ziggurat, { address: event.log.address.toLowerCase() });
+  const monsterRegistryAddress = zigguratData?.monsterRegistry;
+
+  // Use multicall to get room data, monster index, number of doors, and room type
+  const [roomData, monsterIndex, numberOfDoors, roomType] = await context.client.multicall({
+    multicallAddress: "0xca11bde05977b3631167028862be2a173976ca11",
+    contracts: [
+      {
+        address: event.log.address as `0x${string}`,
+        abi: ZigguratAbi,
+        functionName: "rooms",
+        args: [event.args.childRoomHash]
+      },
+      {
+        address: event.log.address as `0x${string}`,
+        abi: ZigguratAbi,
+        functionName: "getMonsterIndex",
+        args: [event.args.childRoomHash]
+      },
+      {
+        address: event.log.address as `0x${string}`,
+        abi: ZigguratAbi,
+        functionName: "getNumberOfDoors",
+        args: [event.args.childRoomHash]
+      },
+      {
+        address: event.log.address as `0x${string}`,
+        abi: ZigguratAbi,
+        functionName: "getRoomType",
+        args: [event.args.childRoomHash]
+      }
+    ]
   });
-  const roomDepth = roomData.depth;
+
+  // Get the monster character address from MonsterRegistry
+  let monsterCharacterAddress = "";
+  if (monsterRegistryAddress && monsterIndex.result !== undefined && roomType.result == 2n) {
+    try {
+      const monsterResult = await context.client.readContract({
+        address: monsterRegistryAddress as `0x${string}`,
+        abi: MonsterRegistryAbi,
+        functionName: "monsters",
+        args: [monsterIndex.result]
+      });
+      monsterCharacterAddress = monsterResult?.toLowerCase() || "";
+    } catch (error) {
+      console.log("Failed to fetch monster from registry:", error);
+    }
+  }
 
   await context.db
     .insert(zigguratRoom)
@@ -103,14 +148,19 @@ ponder.on("Ziggurat:RoomRevealedEvent", async ({ event, context }) => {
       parentDoorIndex: event.args.doorIndex,
       revealedAt: event.block.timestamp,
       parentRoomId: event.args.roomHash.toLowerCase(), // Use roomHash as parentRoomId
-      roomType: 0n, // Default value since roomType is not in the event
-      depth: roomDepth,
+      roomType: roomType.result || 0n,
+      depth: roomData.result?.depth || 0n,
       battle: "",
+      monsterId: monsterCharacterAddress,
+      numberOfDoors: numberOfDoors.result || 0n,
     })
     .onConflictDoUpdate({
       roomHash: event.args.childRoomHash.toLowerCase(),
       revealedAt: event.block.timestamp,
-      depth: roomDepth,
+      roomType: roomType.result || 0n,
+      depth: roomData.result?.depth || 0n,
+      monsterId: monsterCharacterAddress,
+      numberOfDoors: numberOfDoors.result || 0n,
     });
 });
 
@@ -130,6 +180,7 @@ ponder.on("Ziggurat:NextRoomChosenEvent", async ({ event, context }) => {
       battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(1), // DOOR_CHOSEN
       chosenDoor: event.args.doorIndex,
+      createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
       startedAt: BigInt(0), // Will be updated by onConflictDoUpdate
       endedAt: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -153,15 +204,41 @@ ponder.on("Ziggurat:PartyEndedEvent", async ({ event, context }) => {
       inviter: "", // Will be updated by onConflictDoUpdate
       roomHash: "", // Will be updated by onConflictDoUpdate
       battleAddress: "", // Will be updated by onConflictDoUpdate
-      state: BigInt(4), // ESCAPED
+      state: BigInt(3), // ESCAPED
       chosenDoor: BigInt(0), // Will be updated by onConflictDoUpdate
+      createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
       startedAt: BigInt(0), // Will be updated by onConflictDoUpdate
       endedAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
-      state: BigInt(4), // ESCAPED
+      state: BigInt(3), // ESCAPED
       endedAt: event.block.timestamp,
+    });
+});
+
+// Ziggurat: PartyCancelledEvent
+ponder.on("Ziggurat:PartyCancelledEvent", async ({ event, context }) => {
+  await context.db
+    .insert(party)
+    .values({
+      id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
+      zigguratAddress: event.log.address.toLowerCase(),
+      partyId: event.args.partyId.toString(),
+      leader: "", // Will be updated by onConflictDoUpdate
+      isPublic: false, // Will be updated by onConflictDoUpdate
+      inviter: "", // Will be updated by onConflictDoUpdate
+      roomHash: "", // Will be updated by onConflictDoUpdate
+      battleAddress: "", // Will be updated by onConflictDoUpdate
+      state: BigInt(4), // CANCELLED
+      chosenDoor: BigInt(0), // Will be updated by onConflictDoUpdate
+      createdTxHash: "", // Will be updated by onConflictDoUpdate
+      createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
+      startedAt: BigInt(0), // Will be updated by onConflictDoUpdate
+      endedAt: BigInt(0), // Will be updated by onConflictDoUpdate
+    })
+    .onConflictDoUpdate({
+      state: BigInt(4), // CANCELLED
     });
 });
 
@@ -200,6 +277,7 @@ ponder.on("Ziggurat:RoomEnteredEvent", async ({ event, context }) => {
       battleAddress: battleAddress,
       state: BigInt(2), // IN_ROOM
       chosenDoor: BigInt(0), // Reset when entering new room
+      createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
       startedAt: BigInt(0), // Will be updated by onConflictDoUpdate
       endedAt: BigInt(0), // Will be updated by onConflictDoUpdate

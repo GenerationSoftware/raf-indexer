@@ -6,6 +6,7 @@ import {
   turnEnd 
 } from "ponder:schema";
 import PlayerStatsStorageAbi from "../contracts/abis/PlayerStatsStorage.json";
+import BattleAbi from "../contracts/abis/Battle.json";
 
 // Battle: PlayerJoinedEvent
 ponder.on("Battle:PlayerJoinedEvent", async ({ event, context }) => {
@@ -112,6 +113,29 @@ ponder.on("Battle:PlayerActionEvent", async ({ event, context }) => {
   const battleRecord = await context.db.find(battle, { id: event.log.address.toLowerCase() });
   const currentTurn = battleRecord?.currentTurn || BigInt(0);
 
+  // Use multicall to get battle state information
+  const [teamAEliminated, teamBEliminated, winner] = await context.client.multicall({
+    multicallAddress: "0xca11bde05977b3631167028862be2a173976ca11",
+    contracts: [
+      {
+        address: event.log.address as `0x${string}`,
+        abi: BattleAbi,
+        functionName: "teamAEliminated",
+      },
+      {
+        address: event.log.address as `0x${string}`,
+        abi: BattleAbi,
+        functionName: "teamBEliminated",
+      },
+      {
+        address: event.log.address as `0x${string}`,
+        abi: BattleAbi,
+        functionName: "winner",
+      },
+    ],
+  });
+
+  // Insert the player action record
   await context.db
     .insert(playerAction)
     .values({
@@ -122,6 +146,22 @@ ponder.on("Battle:PlayerActionEvent", async ({ event, context }) => {
       cardIndex: event.args.card,
       cardActionParams: event.args.cardActionParams,
       actionedAt: event.block.timestamp,
+    });
+
+  // Update the battle record with the latest state
+  await context.db
+    .insert(battle)
+    .values({
+      id: event.log.address.toLowerCase(),
+      teamAEliminated: teamAEliminated.result as bigint,
+      teamBEliminated: teamBEliminated.result as bigint,
+      winner: winner.result as bigint,
+      createdAt: event.block.timestamp,
+    })
+    .onConflictDoUpdate({
+      teamAEliminated: teamAEliminated.result as bigint,
+      teamBEliminated: teamBEliminated.result as bigint,
+      winner: winner.result as bigint,
     });
 });
 

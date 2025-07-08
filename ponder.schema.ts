@@ -39,6 +39,7 @@ export const party = onchainTable("party", (t) => ({
   battleAddress: t.text(), // battle contract address for the current room
   state: t.bigint(), // PartyState enum: 0=CREATED, 1=DOOR_CHOSEN, 2=IN_ROOM, 3=CANCELLED, 4=ESCAPED
   chosenDoor: t.bigint(), // index of the chosen door
+  createdTxHash: t.text(), // transaction hash that created the party
   createdAt: t.bigint(),
   startedAt: t.bigint(),
   endedAt: t.bigint(),
@@ -62,6 +63,8 @@ export const zigguratRoom = onchainTable("zigguratRoom", (t) => ({
   roomType: t.bigint(),
   depth: t.bigint(), // depth in the ziggurat
   battle: t.text(), // battle contract address when room is entered
+  monsterId: t.text(), // monster character contract address
+  numberOfDoors: t.bigint(), // number of doors in this room
 }));
 
 // Battle tables
@@ -82,7 +85,6 @@ export const battle = onchainTable("battle", (t) => ({
   teamBEliminated: t.bigint(),
   winner: t.bigint(), // 0=tie, 1=teamA, 2=teamB
   gameStartedAt: t.bigint(),
-  gameEndedAt: t.bigint(),
   createdAt: t.bigint(),
 }));
 
@@ -155,7 +157,7 @@ export const turnEnd = onchainTable("turnEnd", (t) => ({
 // Monster Registry tables
 export const monster = onchainTable("monster", (t) => ({
   id: t.text().primaryKey(), // character contract address
-  character: t.text(), // character contract address
+  characterAddress: t.text(), // character contract address
   health: t.bigint(),
   registeredAt: t.bigint(),
 }));
@@ -218,6 +220,10 @@ export const zigguratRoomRelations = relations(zigguratRoom, ({ one, many }) => 
   }),
   children: many(zigguratRoom, {
     relationName: "parentChild"
+  }),
+  monster: one(monster, {
+    fields: [zigguratRoom.monsterId],
+    references: [monster.characterAddress],
   })
 }));
 
@@ -267,8 +273,19 @@ export const turnEndRelations = relations(turnEnd, ({ one }) => ({
   }),
 }));
 
-export const characterRelations = relations(character, ({ many }) => ({
+export const characterRelations = relations(character, ({ one, many }) => ({
   cards: many(characterCard),
   battlePlayers: many(battlePlayer),
-  partyMembers: many(partyMember)
+  partyMembers: many(partyMember),
+  monster: one(monster, {
+    fields: [character.id],
+    references: [monster.characterAddress],
+  })
+}));
+
+export const monsterRelations = relations(monster, ({ one }) => ({
+  character: one(character, {
+    fields: [monster.characterAddress],
+    references: [character.id],
+  })
 }));

@@ -32,7 +32,6 @@ ponder.on("BattleFactory:CreatedGame", async ({ event, context }) => {
       teamBEliminated: BigInt(0),
       winner: BigInt(0),
       gameStartedAt: BigInt(0),
-      gameEndedAt: BigInt(0),
       createdAt: event.block.timestamp,
     })
     .onConflictDoUpdate({

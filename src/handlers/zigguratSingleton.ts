@@ -109,6 +109,7 @@ ponder.on("ZigguratSingleton:ZigguratSet", async ({ event, context }) => {
     parentDoorIndex: 0n,
     revealedAt: event.block.timestamp,
     roomType: 0n, // Root room type
+    numberOfDoors: 1n, // Root room has 1 door
     depth: 0n, // Root is depth 0
     battle: "",
   });
