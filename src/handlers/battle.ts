@@ -2,8 +2,7 @@ import { ponder } from "ponder:registry";
 import { 
   battle, 
   battlePlayer, 
-  playerAction, 
-  turnEnd 
+  playerAction 
 } from "ponder:schema";
 import PlayerStatsStorageAbi from "../contracts/abis/PlayerStatsStorage.json";
 import BattleAbi from "../contracts/abis/Battle.json";
@@ -139,7 +138,7 @@ ponder.on("Battle:PlayerActionEvent", async ({ event, context }) => {
   await context.db
     .insert(playerAction)
     .values({
-      id: event.log.address.toLowerCase() + "-" + event.args.playerId.toString() + "-" + currentTurn.toString() + "-" + event.block.timestamp.toString(),
+      id: event.log.address.toLowerCase() + "-" + event.args.playerId.toString() + "-" + currentTurn.toString() + "-" + event.transaction.hash + "-" + event.log.logIndex.toString(),
       battleAddress: event.log.address.toLowerCase(),
       playerId: event.args.playerId,
       turn: currentTurn,
@@ -219,13 +218,13 @@ ponder.on("Battle:EndedTurnEvent", async ({ event, context }) => {
 
   // Record the turn end
   await context.db
-    .insert(turnEnd)
+    .insert(battlePlayer)
     .values({
-      id: event.log.address.toLowerCase() + "-" + event.args.playerId.toString() + "-" + event.args.turn.toString(),
-      battleAddress: event.log.address.toLowerCase(),
-      playerId: event.args.playerId,
-      turn: event.args.turn,
-      endedAt: event.block.timestamp,
+      id: event.log.address.toLowerCase() + "-" + event.args.playerId.toString(),
+      lastEndedTurn: event.args.turn
+    })
+    .onConflictDoUpdate({
+      lastEndedTurn: event.args.turn
     });
 });
 

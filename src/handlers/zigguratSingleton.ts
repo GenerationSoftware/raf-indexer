@@ -57,6 +57,7 @@ ponder.on("ZigguratSingleton:ZigguratSet", async ({ event, context }) => {
   const zigguratAddress = event.args.ziggurat as `0x${string}`;
   const [
     trustedForwarder,
+    owner,
     operator,
     rngSeed,
     rootRoomHash,
@@ -70,6 +71,7 @@ ponder.on("ZigguratSingleton:ZigguratSet", async ({ event, context }) => {
     multicallAddress: "0xca11bde05977b3631167028862be2a173976ca11",
     contracts: [
       { address: zigguratAddress, abi: ZigguratAbi, functionName: 'trustedForwarder' },
+      { address: zigguratAddress, abi: ZigguratAbi, functionName: 'owner' },
       { address: zigguratAddress, abi: ZigguratAbi, functionName: 'operator' },
       { address: zigguratAddress, abi: ZigguratAbi, functionName: 'rngSeed' },
       { address: zigguratAddress, abi: ZigguratAbi, functionName: 'rootRoomHash' },
@@ -85,6 +87,7 @@ ponder.on("ZigguratSingleton:ZigguratSet", async ({ event, context }) => {
   await context.db.insert(ziggurat).values({
     address: zigguratAddress.toLowerCase(),
     trustedForwarder: trustedForwarder.result?.toLowerCase() || '',
+    owner: owner.result?.toLowerCase() || '',
     operator: operator.result?.toLowerCase() || '',
     rngSeed: rngSeed.result || '',
     rootRoomHash: rootRoomHash.result?.toLowerCase() || '',

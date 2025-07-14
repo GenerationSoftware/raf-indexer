@@ -45,10 +45,43 @@ ponder.on("Character:ActivatedCard", async ({ event, context }) => {
       deck: event.args.deck.toLowerCase(),
       tokenId: event.args.tokenId,
       activatedAt: event.block.timestamp,
+      deactivatedAt: BigInt(0),
+      isActive: true,
     })
     .onConflictDoUpdate({
       deck: event.args.deck.toLowerCase(),
       tokenId: event.args.tokenId,
       activatedAt: event.block.timestamp,
+      isActive: true,
+    });
+});
+
+// Character: DeactivatedCard
+ponder.on("Character:DeactivatedCard", async ({ event, context }) => {
+  console.log("CHARACTER DEACTIVATED CARD", {
+    characterAddress: event.log.address.toLowerCase(),
+    cardId: event.args.cardId.toString(),
+    deck: event.args.deck.toLowerCase(),
+    tokenId: event.args.tokenId.toString()
+  });
+
+  const cardId = event.log.address.toLowerCase() + "-" + event.args.cardId.toString();
+
+  // Mark the card as deactivated
+  await context.db
+    .insert(characterCard)
+    .values({
+      id: cardId,
+      characterAddress: event.log.address.toLowerCase(),
+      cardId: event.args.cardId,
+      deck: event.args.deck.toLowerCase(),
+      tokenId: event.args.tokenId,
+      activatedAt: BigInt(0),
+      deactivatedAt: event.block.timestamp,
+      isActive: false,
+    })
+    .onConflictDoUpdate({
+      deactivatedAt: event.block.timestamp,
+      isActive: false,
     });
 });

@@ -4,6 +4,7 @@ import { char, onchainTable, relations } from "ponder";
 export const ziggurat = onchainTable("ziggurat", (t) => ({
   address: t.text().primaryKey(), // contract address
   trustedForwarder: t.text(),
+  owner: t.text(),
   operator: t.text(),
   rngSeed: t.text(),
   rootRoomHash: t.text(),
@@ -104,6 +105,8 @@ export const characterCard = onchainTable("characterCard", (t) => ({
   deck: t.text(), // deck contract address
   tokenId: t.bigint(),
   activatedAt: t.bigint(),
+  deactivatedAt: t.bigint(),
+  isActive: t.boolean(),
 }));
 
 // BasicDeck (BaseCards) tables
@@ -129,6 +132,7 @@ export const battlePlayer = onchainTable("battlePlayer", (t) => ({
   joinedAt: t.bigint(),
   eliminated: t.boolean(),
   eliminatedAt: t.bigint(),
+  lastEndedTurn: t.bigint(),
   // Player stats from PlayerStatsStorage
   statsLastUpdatedTurn: t.bigint(), // turn when stats were last updated
   statsData: t.text(), // hex encoded bytes30 stats data
@@ -136,22 +140,13 @@ export const battlePlayer = onchainTable("battlePlayer", (t) => ({
 
 // Player Action tables
 export const playerAction = onchainTable("playerAction", (t) => ({
-  id: t.text().primaryKey(), // battleAddress + playerId + turn + timestamp
+  id: t.text().primaryKey(), // battleAddress + playerId + turn + txHash + logIndex
   battleAddress: t.text(),
   playerId: t.bigint(),
   turn: t.bigint(),
   cardIndex: t.bigint(),
   cardActionParams: t.text(), // hex encoded bytes
   actionedAt: t.bigint(),
-}));
-
-// Turn End tables
-export const turnEnd = onchainTable("turnEnd", (t) => ({
-  id: t.text().primaryKey(), // battleAddress + playerId + turn
-  battleAddress: t.text(),
-  playerId: t.bigint(),
-  turn: t.bigint(),
-  endedAt: t.bigint(),
 }));
 
 // Monster Registry tables
@@ -168,6 +163,32 @@ export const playerStatsStorage = onchainTable("playerStatsStorage", (t) => ({
   trustedForwarder: t.text(),
   owner: t.text(),
   operator: t.text(), // this is the Battle contract
+  createdAt: t.bigint(),
+}));
+
+// BasicDeckLogic tables
+export const actionDefinition = onchainTable("actionDefinition", (t) => ({
+  id: t.text().primaryKey(), // deckLogicAddress + actionType
+  deckLogicAddress: t.text(),
+  actionType: t.bigint(),
+  energy: t.bigint(),
+  setAt: t.bigint(),
+}));
+
+export const actionEffect = onchainTable("actionEffect", (t) => ({
+  id: t.text().primaryKey(), // actionDefinitionId + effectIndex
+  actionDefinitionId: t.text(),
+  effectIndex: t.bigint(),
+  effectType: t.bigint(),
+  amount: t.bigint(),
+}));
+
+// DeckConfiguration tables  
+export const deckConfiguration = onchainTable("deckConfiguration", (t) => ({
+  id: t.text().primaryKey(), // contract address
+  trustedForwarder: t.text(),
+  owner: t.text(),
+  operator: t.text(),
   createdAt: t.bigint(),
 }));
 
@@ -237,7 +258,6 @@ export const characterCardRelations = relations(characterCard, ({ one }) => ({
 export const battleRelations = relations(battle, ({ many }) => ({
   players: many(battlePlayer),
   actions: many(playerAction),
-  turnEnds: many(turnEnd)
 }));
 
 export const battlePlayerRelations = relations(battlePlayer, ({ one }) => ({
@@ -262,17 +282,6 @@ export const playerActionRelations = relations(playerAction, ({ one }) => ({
   }),
 }));
 
-export const turnEndRelations = relations(turnEnd, ({ one }) => ({
-  battle: one(battle, {
-    fields: [turnEnd.battleAddress],
-    references: [battle.id],
-  }),
-  player: one(battlePlayer, {
-    fields: [turnEnd.battleAddress, turnEnd.playerId],
-    references: [battlePlayer.battleAddress, battlePlayer.playerId],
-  }),
-}));
-
 export const characterRelations = relations(character, ({ one, many }) => ({
   cards: many(characterCard),
   battlePlayers: many(battlePlayer),
@@ -287,5 +296,16 @@ export const monsterRelations = relations(monster, ({ one }) => ({
   character: one(character, {
     fields: [monster.characterAddress],
     references: [character.id],
+  })
+}));
+
+export const actionDefinitionRelations = relations(actionDefinition, ({ many }) => ({
+  effects: many(actionEffect),
+}));
+
+export const actionEffectRelations = relations(actionEffect, ({ one }) => ({
+  actionDefinition: one(actionDefinition, {
+    fields: [actionEffect.actionDefinitionId],
+    references: [actionDefinition.id],
   })
 }));

@@ -298,8 +298,10 @@ ponder.on("Ziggurat:ZigguratClosedEvent", async ({ event, context }) => {
     .values({
       address: event.log.address.toLowerCase(),
       trustedForwarder: "", // Will be updated by onConflictDoUpdate
+      owner: "", // Will be updated by onConflictDoUpdate
       operator: "", // Will be updated by onConflictDoUpdate
       rngSeed: "", // Will be updated by onConflictDoUpdate
+      rootRoomHash: "",
       readyAimFireFactory: "", // Will be updated by onConflictDoUpdate
       deckConfiguration: "", // Will be updated by onConflictDoUpdate
       monsterRegistry: "", // Will be updated by onConflictDoUpdate
@@ -311,6 +313,68 @@ ponder.on("Ziggurat:ZigguratClosedEvent", async ({ event, context }) => {
     })
     .onConflictDoUpdate({
       isClosed: true,
+    });
+});
+
+// Ziggurat: OperatorTransferred
+ponder.on("Ziggurat:OperatorTransferred", async ({ event, context }) => {
+  console.log("ZIGGURAT OPERATOR TRANSFERRED", {
+    contractAddress: event.log.address.toLowerCase(),
+    previousOperator: event.args.previousOperator.toLowerCase(),
+    newOperator: event.args.newOperator.toLowerCase()
+  });
+
+  await context.db
+    .insert(ziggurat)
+    .values({
+      address: event.log.address.toLowerCase(),
+      trustedForwarder: "",
+      owner: "",
+      operator: event.args.newOperator.toLowerCase(),
+      rngSeed: "",
+      rootRoomHash: "",
+      readyAimFireFactory: "",
+      deckConfiguration: "",
+      monsterRegistry: "",
+      maxDoorCount: BigInt(0),
+      monsterSigma: BigInt(0),
+      turnDuration: BigInt(0),
+      isClosed: false,
+      createdAt: event.block.timestamp,
+    })
+    .onConflictDoUpdate({
+      operator: event.args.newOperator.toLowerCase(),
+    });
+});
+
+// Ziggurat: OwnershipTransferred
+ponder.on("Ziggurat:OwnershipTransferred", async ({ event, context }) => {
+  console.log("ZIGGURAT OWNERSHIP TRANSFERRED", {
+    contractAddress: event.log.address.toLowerCase(),
+    previousOwner: event.args.previousOwner.toLowerCase(),
+    newOwner: event.args.newOwner.toLowerCase()
+  });
+
+  await context.db
+    .insert(ziggurat)
+    .values({
+      address: event.log.address.toLowerCase(),
+      trustedForwarder: "",
+      owner: event.args.newOwner.toLowerCase(),
+      operator: "",
+      rngSeed: "",
+      rootRoomHash: "",
+      readyAimFireFactory: "",
+      deckConfiguration: "",
+      monsterRegistry: "",
+      maxDoorCount: BigInt(0),
+      monsterSigma: BigInt(0),
+      turnDuration: BigInt(0),
+      isClosed: false,
+      createdAt: event.block.timestamp,
+    })
+    .onConflictDoUpdate({
+      owner: event.args.newOwner.toLowerCase(),
     });
 });
 
