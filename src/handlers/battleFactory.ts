@@ -30,7 +30,7 @@ ponder.on("BattleFactory:CreatedGame", async ({ event, context }) => {
       teamBCount: BigInt(0),
       teamAEliminated: BigInt(0),
       teamBEliminated: BigInt(0),
-      winner: BigInt(0),
+      winner: null,
       gameStartedAt: BigInt(0),
       createdAt: event.block.timestamp,
     })

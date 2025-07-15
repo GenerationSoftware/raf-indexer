@@ -113,7 +113,7 @@ ponder.on("Battle:PlayerActionEvent", async ({ event, context }) => {
   const currentTurn = battleRecord?.currentTurn || BigInt(0);
 
   // Use multicall to get battle state information
-  const [teamAEliminated, teamBEliminated, winner] = await context.client.multicall({
+  const [teamAEliminated, teamBEliminated, winner, gameState] = await context.client.multicall({
     multicallAddress: "0xca11bde05977b3631167028862be2a173976ca11",
     contracts: [
       {
@@ -130,6 +130,11 @@ ponder.on("Battle:PlayerActionEvent", async ({ event, context }) => {
         address: event.log.address as `0x${string}`,
         abi: BattleAbi,
         functionName: "winner",
+      },
+      {
+        address: event.log.address as `0x${string}`,
+        abi: BattleAbi,
+        functionName: "getGameState",
       },
     ],
   });
@@ -154,13 +159,13 @@ ponder.on("Battle:PlayerActionEvent", async ({ event, context }) => {
       id: event.log.address.toLowerCase(),
       teamAEliminated: teamAEliminated.result as bigint,
       teamBEliminated: teamBEliminated.result as bigint,
-      winner: winner.result as bigint,
+      winner: gameState.result == 4n ? winner.result as bigint : null, 
       createdAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
       teamAEliminated: teamAEliminated.result as bigint,
       teamBEliminated: teamBEliminated.result as bigint,
-      winner: winner.result as bigint,
+      winner: gameState.result == 4n ? winner.result as bigint : null, 
     });
 });
 
@@ -185,6 +190,28 @@ ponder.on("Battle:GameStartedEvent", async ({ event, context }) => {
       gameStartedAt: event.args.startedAt,
       teamAStarts: event.args.teamAStarts,
       currentTurn: BigInt(1),
+    });
+});
+
+// Battle: GameEndedEvent
+ponder.on("Battle:GameEndedEvent", async ({ event, context }) => {
+  console.log("BATTLE GAME ENDED", {
+    battleAddress: event.log.address.toLowerCase(),
+    endedAt: event.args.endedAt.toString(),
+    winner: event.args.winner.toString()
+  });
+
+  await context.db
+    .insert(battle)
+    .values({
+      id: event.log.address.toLowerCase(),
+      gameEndedAt: event.args.endedAt,
+      winner: event.args.winner,
+      createdAt: event.block.timestamp,
+    })
+    .onConflictDoUpdate({
+      gameEndedAt: event.args.endedAt,
+      winner: event.args.winner,
     });
 });
 

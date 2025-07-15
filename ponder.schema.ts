@@ -86,6 +86,7 @@ export const battle = onchainTable("battle", (t) => ({
   teamBEliminated: t.bigint(),
   winner: t.bigint(), // 0=tie, 1=teamA, 2=teamB
   gameStartedAt: t.bigint(),
+  gameEndedAt: t.bigint(),
   createdAt: t.bigint(),
 }));
 
