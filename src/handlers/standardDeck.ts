@@ -1,10 +1,10 @@
 import { ponder } from "ponder:registry";
-import { basicDeckCard } from "ponder:schema";
+import { standardDeckCard } from "ponder:schema";
 
-ponder.on("BasicDeck:Minted", async ({ event, context }) => {
+ponder.on("StandardDeck:Minted" as any, async ({ event, context }: any) => {
 
   await context.db
-    .insert(basicDeckCard)
+    .insert(standardDeckCard)
     .values({
       id: `${event.log.address.toLowerCase()}-${event.args.tokenId.toString()}`,
       deckAddress: event.log.address.toLowerCase(),
@@ -22,10 +22,10 @@ ponder.on("BasicDeck:Minted", async ({ event, context }) => {
 
 });
 
-// BasicDeck: Transfer
-ponder.on("BasicDeck:Transfer", async ({ event, context }) => {
+// StandardDeck: Transfer
+ponder.on("StandardDeck:Transfer" as any, async ({ event, context }: any) => {
   await context.db
-    .insert(basicDeckCard)
+    .insert(standardDeckCard)
     .values({
       id: `${event.log.address.toLowerCase()}-${event.args.tokenId.toString()}`,
       deckAddress: event.log.address.toLowerCase(),

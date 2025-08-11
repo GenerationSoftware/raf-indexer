@@ -2,7 +2,7 @@ import { ponder } from "ponder:registry";
 import { character } from "ponder:schema";
 
 // CharacterFactory: CharacterCreated
-ponder.on("CharacterFactory:CharacterCreated", async ({ event, context }) => {
+ponder.on("CharacterFactory:CharacterCreated" as any, async ({ event, context }: any) => {
 
   await context.db
     .insert(character)

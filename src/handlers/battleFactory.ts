@@ -2,7 +2,7 @@ import { ponder } from "ponder:registry";
 import { battle } from "ponder:schema";
 
 // BattleFactory: CreatedGame
-ponder.on("BattleFactory:CreatedGame", async ({ event, context }) => {
+ponder.on("BattleFactory:CreatedGame" as any, async ({ event, context }: any) => {
   console.log("BATTLE CREATED", {
     gameAddress: event.args.gameAddress.toLowerCase(),
     owner: event.args.owner.toLowerCase(),

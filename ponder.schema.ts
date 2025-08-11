@@ -1,7 +1,7 @@
 import { char, onchainTable, relations } from "ponder";
 
-// Ziggurat tables
-export const ziggurat = onchainTable("ziggurat", (t) => ({
+// Act tables (formerly Ziggurat)
+export const act = onchainTable("act", (t) => ({
   address: t.text().primaryKey(), // contract address
   trustedForwarder: t.text(),
   owner: t.text(),
@@ -18,20 +18,26 @@ export const ziggurat = onchainTable("ziggurat", (t) => ({
   createdAt: t.bigint(),
 }));
 
-export const zigguratSingleton = onchainTable("zigguratSingleton", (t) => ({
+export const season = onchainTable("season", (t) => ({
   address: t.text().primaryKey(), // contract address
   trustedForwarder: t.text(),
   owner: t.text(),
   operator: t.text(),
-  zigguratDuration: t.bigint(),
-  ziggurat: t.text(), // current ziggurat address
-  lastSetAt: t.bigint(),
+  currentActIndex: t.bigint(),
+  createdAt: t.bigint(),
+}));
+
+export const seasonAct = onchainTable("seasonAct", (t) => ({
+  id: t.text().primaryKey(), // seasonAddress + actIndex
+  seasonAddress: t.text(),
+  actIndex: t.bigint(),
+  actAddress: t.text(),
   createdAt: t.bigint(),
 }));
 
 export const party = onchainTable("party", (t) => ({
-  id: t.text().primaryKey(), // zigguratAddress + partyId
-  zigguratAddress: t.text(),
+  id: t.text().primaryKey(), // actAddress + partyId
+  actAddress: t.text(),
   partyId: t.text(),
   leader: t.text(), // leader character contract address
   isPublic: t.boolean(),
@@ -53,16 +59,16 @@ export const partyMember = onchainTable("partyMember", (t) => ({
   joinedAt: t.bigint()
 }));
 
-export const zigguratRoom = onchainTable("zigguratRoom", (t) => ({
-  id: t.text().primaryKey(), // zigguratAddress + parentRoomHash + parentDoorIndex
-  zigguratAddress: t.text(),
+export const actRoom = onchainTable("actRoom", (t) => ({
+  id: t.text().primaryKey(), // actAddress + parentRoomHash + parentDoorIndex
+  actAddress: t.text(),
   roomHash: t.text(), // roomHash
   parentRoomHash: t.text(), // parent room hash
   parentRoomId: t.text(),
   parentDoorIndex: t.bigint(),
   revealedAt: t.bigint(),
   roomType: t.bigint(),
-  depth: t.bigint(), // depth in the ziggurat
+  depth: t.bigint(), // depth in the act
   battle: t.text(), // battle contract address when room is entered
   monsterId: t.text(), // monster character contract address
   numberOfDoors: t.bigint(), // number of doors in this room
@@ -111,7 +117,7 @@ export const characterCard = onchainTable("characterCard", (t) => ({
 }));
 
 // BasicDeck (BaseCards) tables
-export const basicDeckCard = onchainTable("basicDeckCard", (t) => ({
+export const standardDeckCard = onchainTable("standardDeckCard", (t) => ({
   id: t.text().primaryKey(), // deckAddress + tokenId
   deckAddress: t.text(), // deck contract address
   tokenId: t.bigint(),
@@ -194,24 +200,24 @@ export const deckConfiguration = onchainTable("deckConfiguration", (t) => ({
 }));
 
 // Relations - Simple and safe
-export const zigguratRelations = relations(ziggurat, ({ one, many }) => ({
+export const actRelations = relations(act, ({ one, many }) => ({
   parties: many(party),
-  rooms: many(zigguratRoom),
-  rootRoom: one(zigguratRoom, {
-    fields: [ziggurat.rootRoomHash],
-    references: [zigguratRoom.id],
+  rooms: many(actRoom),
+  rootRoom: one(actRoom, {
+    fields: [act.rootRoomHash],
+    references: [actRoom.id],
   })
 }));
 
 export const partyRelations = relations(party, ({ one, many }) => ({
-  ziggurat: one(ziggurat, {
-    fields: [party.zigguratAddress],
-    references: [ziggurat.address],
+  act: one(act, {
+    fields: [party.actAddress],
+    references: [act.address],
   }),
   members: many(partyMember),
-  currentRoom: one(zigguratRoom, {
+  currentRoom: one(actRoom, {
     fields: [party.roomHash],
-    references: [zigguratRoom.roomHash],
+    references: [actRoom.roomHash],
   }),
   battle: one(battle, {
     fields: [party.battleAddress],
@@ -230,21 +236,21 @@ export const partyMemberRelations = relations(partyMember, ({ one }) => ({
   })
 }));
 
-export const zigguratRoomRelations = relations(zigguratRoom, ({ one, many }) => ({
-  ziggurat: one(ziggurat, {
-    fields: [zigguratRoom.zigguratAddress],
-    references: [ziggurat.address],
+export const actRoomRelations = relations(actRoom, ({ one, many }) => ({
+  act: one(act, {
+    fields: [actRoom.actAddress],
+    references: [act.address],
   }),
-  parent: one(zigguratRoom, {
-    fields: [zigguratRoom.parentRoomId],
-    references: [zigguratRoom.id],
+  parent: one(actRoom, {
+    fields: [actRoom.parentRoomId],
+    references: [actRoom.id],
     relationName: "parentChild"
   }),
-  children: many(zigguratRoom, {
+  children: many(actRoom, {
     relationName: "parentChild"
   }),
   monster: one(monster, {
-    fields: [zigguratRoom.monsterId],
+    fields: [actRoom.monsterId],
     references: [monster.characterAddress],
   })
 }));
@@ -310,3 +316,4 @@ export const actionEffectRelations = relations(actionEffect, ({ one }) => ({
     references: [actionDefinition.id],
   })
 }));
+

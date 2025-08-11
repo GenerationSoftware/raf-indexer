@@ -3,7 +3,7 @@ import { battlePlayer, battle, playerStatsStorage } from "ponder:schema";
 import PlayerStatsStorageAbi from "../contracts/abis/PlayerStatsStorage.json";
 
 // PlayerStatsStorage: PlayerStatUpdatedEvent
-ponder.on("PlayerStatsStorage:PlayerStatUpdatedEvent", async ({ event, context }) => {
+ponder.on("PlayerStatsStorage:PlayerStatUpdatedEvent" as any, async ({ event, context }: any) => {
   console.log("PLAYER STAT UPDATED", {
     playerId: event.args.playerId.toString(),
     teamA: event.args.stats.teamA,
@@ -75,7 +75,7 @@ ponder.on("PlayerStatsStorage:PlayerStatUpdatedEvent", async ({ event, context }
 });
 
 // PlayerStatsStorage: OwnershipTransferred
-ponder.on("PlayerStatsStorage:OwnershipTransferred", async ({ event, context }) => {
+ponder.on("PlayerStatsStorage:OwnershipTransferred" as any, async ({ event, context }: any) => {
   console.log("PLAYER STATS STORAGE OWNERSHIP TRANSFERRED", {
     previousOwner: event.args.previousOwner.toLowerCase(),
     newOwner: event.args.newOwner.toLowerCase()
@@ -97,7 +97,7 @@ ponder.on("PlayerStatsStorage:OwnershipTransferred", async ({ event, context }) 
 });
 
 // PlayerStatsStorage: OperatorTransferred
-ponder.on("PlayerStatsStorage:OperatorTransferred", async ({ event, context }) => {
+ponder.on("PlayerStatsStorage:OperatorTransferred" as any, async ({ event, context }: any) => {
   console.log("PLAYER STATS STORAGE OPERATOR TRANSFERRED", {
     previousOperator: event.args.previousOperator.toLowerCase(),
     newOperator: event.args.newOperator.toLowerCase()

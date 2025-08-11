@@ -2,7 +2,7 @@ import { ponder } from "ponder:registry";
 import { deckConfiguration } from "ponder:schema";
 
 // DeckConfiguration: OperatorTransferred
-ponder.on("DeckConfiguration:OperatorTransferred", async ({ event, context }) => {
+ponder.on("DeckConfiguration:OperatorTransferred" as any, async ({ event, context }: any) => {
   console.log("DECK CONFIGURATION OPERATOR TRANSFERRED", {
     contractAddress: event.log.address.toLowerCase(),
     previousOperator: event.args.previousOperator.toLowerCase(),
@@ -27,7 +27,7 @@ ponder.on("DeckConfiguration:OperatorTransferred", async ({ event, context }) =>
 });
 
 // DeckConfiguration: OwnershipTransferred
-ponder.on("DeckConfiguration:OwnershipTransferred", async ({ event, context }) => {
+ponder.on("DeckConfiguration:OwnershipTransferred" as any, async ({ event, context }: any) => {
   console.log("DECK CONFIGURATION OWNERSHIP TRANSFERRED", {
     contractAddress: event.log.address.toLowerCase(),
     previousOwner: event.args.previousOwner.toLowerCase(),

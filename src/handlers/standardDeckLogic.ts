@@ -1,8 +1,8 @@
 import { ponder } from "ponder:registry";
 import { actionDefinition, actionEffect } from "ponder:schema";
 
-// BasicDeckLogic: ActionDefinitionSet
-ponder.on("BasicDeckLogic:ActionDefinitionSet", async ({ event, context }) => {
+// StandardDeckLogic: ActionDefinitionSet
+ponder.on("StandardDeckLogic:ActionDefinitionSet" as any, async ({ event, context }: any) => {
   console.log("ACTION DEFINITION SET", {
     actionType: event.args.actionType.toString(),
     energy: event.args.actionDefinition.energy.toString(),
@@ -48,8 +48,8 @@ ponder.on("BasicDeckLogic:ActionDefinitionSet", async ({ event, context }) => {
   }
 });
 
-// BasicDeckLogic: RoleAdminChanged
-ponder.on("BasicDeckLogic:RoleAdminChanged", async ({ event, context }) => {
+// StandardDeckLogic: RoleAdminChanged
+ponder.on("StandardDeckLogic:RoleAdminChanged" as any, async ({ event, context }: any) => {
   console.log("ROLE ADMIN CHANGED", {
     role: event.args.role,
     previousAdminRole: event.args.previousAdminRole,
@@ -59,8 +59,8 @@ ponder.on("BasicDeckLogic:RoleAdminChanged", async ({ event, context }) => {
   // but could be added to an audit log table if needed
 });
 
-// BasicDeckLogic: RoleGranted
-ponder.on("BasicDeckLogic:RoleGranted", async ({ event, context }) => {
+// StandardDeckLogic: RoleGranted
+ponder.on("StandardDeckLogic:RoleGranted" as any, async ({ event, context }: any) => {
   console.log("ROLE GRANTED", {
     role: event.args.role,
     account: event.args.account.toLowerCase(),
@@ -70,8 +70,8 @@ ponder.on("BasicDeckLogic:RoleGranted", async ({ event, context }) => {
   // but could be added to an audit log table if needed
 });
 
-// BasicDeckLogic: RoleRevoked
-ponder.on("BasicDeckLogic:RoleRevoked", async ({ event, context }) => {
+// StandardDeckLogic: RoleRevoked
+ponder.on("StandardDeckLogic:RoleRevoked" as any, async ({ event, context }: any) => {
   console.log("ROLE REVOKED", {
     role: event.args.role,
     account: event.args.account.toLowerCase(),

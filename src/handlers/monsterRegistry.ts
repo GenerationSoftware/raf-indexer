@@ -3,7 +3,7 @@ import { monster, character } from "ponder:schema";
 import MonsterRegistryAbi from "../contracts/abis/MonsterRegistry.json";
 
 // MonsterRegistry: MonsterAdded
-ponder.on("MonsterRegistry:MonsterAdded", async ({ event, context }) => {
+ponder.on("MonsterRegistry:MonsterAdded" as any, async ({ event, context }: any) => {
   console.log("MONSTER ADDED", {
     character: event.args.character.toLowerCase(),
     health: event.args.stats.health.toString()

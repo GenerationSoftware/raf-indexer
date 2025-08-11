@@ -8,7 +8,7 @@ import PlayerStatsStorageAbi from "../contracts/abis/PlayerStatsStorage.json";
 import BattleAbi from "../contracts/abis/Battle.json";
 
 // Battle: PlayerJoinedEvent
-ponder.on("Battle:PlayerJoinedEvent", async ({ event, context }) => {
+ponder.on("Battle:PlayerJoinedEvent" as any, async ({ event, context }: any) => {
   console.log("BATTLE PLAYER JOINED", {
     battleAddress: event.log.address.toLowerCase(),
     playerId: event.args.playerId.toString(),
@@ -100,7 +100,7 @@ ponder.on("Battle:PlayerJoinedEvent", async ({ event, context }) => {
 });
 
 // Battle: PlayerActionEvent
-ponder.on("Battle:PlayerActionEvent", async ({ event, context }) => {
+ponder.on("Battle:PlayerActionEvent" as any, async ({ event, context }: any) => {
   console.log("BATTLE PLAYER ACTION", {
     battleAddress: event.log.address.toLowerCase(),
     playerId: event.args.playerId.toString(),
@@ -170,7 +170,7 @@ ponder.on("Battle:PlayerActionEvent", async ({ event, context }) => {
 });
 
 // Battle: GameStartedEvent
-ponder.on("Battle:GameStartedEvent", async ({ event, context }) => {
+ponder.on("Battle:GameStartedEvent" as any, async ({ event, context }: any) => {
   console.log("BATTLE GAME STARTED", {
     battleAddress: event.log.address.toLowerCase(),
     startedAt: event.args.startedAt.toString(),
@@ -194,7 +194,7 @@ ponder.on("Battle:GameStartedEvent", async ({ event, context }) => {
 });
 
 // Battle: GameEndedEvent
-ponder.on("Battle:GameEndedEvent", async ({ event, context }) => {
+ponder.on("Battle:GameEndedEvent" as any, async ({ event, context }: any) => {
   console.log("BATTLE GAME ENDED", {
     battleAddress: event.log.address.toLowerCase(),
     endedAt: event.args.endedAt.toString(),
@@ -216,7 +216,7 @@ ponder.on("Battle:GameEndedEvent", async ({ event, context }) => {
 });
 
 // Battle: NextTurnEvent
-ponder.on("Battle:NextTurnEvent", async ({ event, context }) => {
+ponder.on("Battle:NextTurnEvent" as any, async ({ event, context }: any) => {
   console.log("BATTLE NEXT TURN", {
     battleAddress: event.log.address.toLowerCase(),
     turn: event.args.turn.toString()
@@ -236,7 +236,7 @@ ponder.on("Battle:NextTurnEvent", async ({ event, context }) => {
 });
 
 // Battle: EndedTurnEvent
-ponder.on("Battle:EndedTurnEvent", async ({ event, context }) => {
+ponder.on("Battle:EndedTurnEvent" as any, async ({ event, context }: any) => {
   console.log("BATTLE TURN ENDED", {
     battleAddress: event.log.address.toLowerCase(),
     turn: event.args.turn.toString(),
@@ -256,7 +256,7 @@ ponder.on("Battle:EndedTurnEvent", async ({ event, context }) => {
 });
 
 // Battle: OwnershipTransferred
-ponder.on("Battle:OwnershipTransferred", async ({ event, context }) => {
+ponder.on("Battle:OwnershipTransferred" as any, async ({ event, context }: any) => {
   console.log("BATTLE OWNERSHIP TRANSFERRED", {
     battleAddress: event.log.address.toLowerCase(),
     previousOwner: event.args.previousOwner.toLowerCase(),
@@ -276,7 +276,7 @@ ponder.on("Battle:OwnershipTransferred", async ({ event, context }) => {
 });
 
 // Battle: OperatorTransferred
-ponder.on("Battle:OperatorTransferred", async ({ event, context }) => {
+ponder.on("Battle:OperatorTransferred" as any, async ({ event, context }: any) => {
   console.log("BATTLE OPERATOR TRANSFERRED", {
     battleAddress: event.log.address.toLowerCase(),
     previousOperator: event.args.previousOperator.toLowerCase(),

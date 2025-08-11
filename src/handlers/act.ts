@@ -1,22 +1,21 @@
 import { ponder } from "ponder:registry";
-import { ziggurat, party, partyMember, zigguratRoom } from "ponder:schema";
-import ZigguratAbi from "../contracts/abis/Ziggurat.json";
-import MonsterRegistryAbi from "../contracts/abis/MonsterRegistry.json";
+import { act, party, partyMember } from "ponder:schema";
+import ActAbi from "../contracts/abis/Act.json";
 
-// Ziggurat: PartyCreatedEvent
-ponder.on("Ziggurat:PartyCreatedEvent", async ({ event, context }) => {
+// Act: PartyCreatedEvent
+ponder.on("Act:PartyCreatedEvent" as any, async ({ event, context }: any) => {
   console.log("PARTY CREATED", {
     partyId: event.args.partyId.toString(),
     leader: event.args.leader.toLowerCase(),
     isPublic: event.args.isPublic,
     inviter: event.args.inviter.toLowerCase(),
-    zigguratAddress: event.log.address.toLowerCase()
+    actAddress: event.log.address.toLowerCase()
   });
   await context.db
     .insert(party)
     .values({
       id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
-      zigguratAddress: event.log.address.toLowerCase(),
+      actAddress: event.log.address.toLowerCase(),
       partyId: event.args.partyId.toString(),
       leader: event.args.leader.toLowerCase(),
       isPublic: event.args.isPublic,
@@ -37,8 +36,8 @@ ponder.on("Ziggurat:PartyCreatedEvent", async ({ event, context }) => {
     });
 });
 
-// Ziggurat: PartyMemberJoinedEvent
-ponder.on("Ziggurat:PartyMemberJoinedEvent", async ({ event, context }) => {
+// Act: PartyMemberJoinedEvent
+ponder.on("Act:PartyMemberJoinedEvent" as any, async ({ event, context }: any) => {
   await context.db
     .insert(partyMember)
     .values({
@@ -53,13 +52,13 @@ ponder.on("Ziggurat:PartyMemberJoinedEvent", async ({ event, context }) => {
     });
 });
 
-// Ziggurat: PartyStartedEvent
-ponder.on("Ziggurat:PartyStartedEvent", async ({ event, context }) => {
+// Act: PartyStartedEvent
+ponder.on("Act:PartyStartedEvent" as any, async ({ event, context }: any) => {
   await context.db
     .insert(party)
     .values({
       id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
-      zigguratAddress: event.log.address.toLowerCase(),
+      actAddress: event.log.address.toLowerCase(),
       partyId: event.args.partyId.toString(),
       leader: "", // Will be updated by onConflictDoUpdate
       isPublic: false, // Will be updated by onConflictDoUpdate
@@ -79,99 +78,15 @@ ponder.on("Ziggurat:PartyStartedEvent", async ({ event, context }) => {
     });
 });
 
-// Ziggurat: RoomRevealedEvent
-ponder.on("Ziggurat:RoomRevealedEvent", async ({ event, context }) => {
-  // Try to find the parent room by its roomHash
-  console.log("ROOM REVEALED, finding parent hash", event.args.roomHash.toLowerCase());
-  
-  const parentRoom = await context.db.find(zigguratRoom, { roomHash: event.args.roomHash.toLowerCase() });
-  console.log("Parent room found:", parentRoom?.id);
 
-  // Get the ziggurat data to find monster registry
-  const zigguratData = await context.db.find(ziggurat, { address: event.log.address.toLowerCase() });
-  const monsterRegistryAddress = zigguratData?.monsterRegistry;
-
-  // Use multicall to get room data, monster index, number of doors, and room type
-  const [roomData, monsterIndex, numberOfDoors, roomType] = await context.client.multicall({
-    multicallAddress: "0xca11bde05977b3631167028862be2a173976ca11",
-    contracts: [
-      {
-        address: event.log.address as `0x${string}`,
-        abi: ZigguratAbi,
-        functionName: "rooms",
-        args: [event.args.childRoomHash]
-      },
-      {
-        address: event.log.address as `0x${string}`,
-        abi: ZigguratAbi,
-        functionName: "getMonsterIndex",
-        args: [event.args.childRoomHash]
-      },
-      {
-        address: event.log.address as `0x${string}`,
-        abi: ZigguratAbi,
-        functionName: "getNumberOfDoors",
-        args: [event.args.childRoomHash]
-      },
-      {
-        address: event.log.address as `0x${string}`,
-        abi: ZigguratAbi,
-        functionName: "getRoomType",
-        args: [event.args.childRoomHash]
-      }
-    ]
-  });
-
-  // Get the monster character address from MonsterRegistry
-  let monsterCharacterAddress = "";
-  if (monsterRegistryAddress && monsterIndex.result !== undefined && roomType.result == 2n) {
-    try {
-      const monsterResult = await context.client.readContract({
-        address: monsterRegistryAddress as `0x${string}`,
-        abi: MonsterRegistryAbi,
-        functionName: "monsters",
-        args: [monsterIndex.result]
-      });
-      monsterCharacterAddress = monsterResult?.toLowerCase() || "";
-    } catch (error) {
-      console.log("Failed to fetch monster from registry:", error);
-    }
-  }
-
-  await context.db
-    .insert(zigguratRoom)
-    .values({
-      id: event.args.childRoomHash.toLowerCase(),
-      zigguratAddress: event.log.address.toLowerCase(),
-      roomHash: event.args.childRoomHash.toLowerCase(),
-      parentRoomHash: event.args.roomHash.toLowerCase(),
-      parentDoorIndex: event.args.doorIndex,
-      revealedAt: event.block.timestamp,
-      parentRoomId: event.args.roomHash.toLowerCase(), // Use roomHash as parentRoomId
-      roomType: roomType.result || 0n,
-      depth: roomData.result?.depth || 0n,
-      battle: "",
-      monsterId: monsterCharacterAddress,
-      numberOfDoors: numberOfDoors.result || 0n,
-    })
-    .onConflictDoUpdate({
-      roomHash: event.args.childRoomHash.toLowerCase(),
-      revealedAt: event.block.timestamp,
-      roomType: roomType.result || 0n,
-      depth: roomData.result?.depth || 0n,
-      monsterId: monsterCharacterAddress,
-      numberOfDoors: numberOfDoors.result || 0n,
-    });
-});
-
-// Ziggurat: NextRoomChosenEvent
-ponder.on("Ziggurat:NextRoomChosenEvent", async ({ event, context }) => {
+// Act: NextRoomChosenEvent
+ponder.on("Act:NextRoomChosenEvent" as any, async ({ event, context }: any) => {
   // Update the party to mark that a door has been chosen
   await context.db
     .insert(party)
     .values({
       id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
-      zigguratAddress: event.log.address.toLowerCase(),
+      actAddress: event.log.address.toLowerCase(),
       partyId: event.args.partyId.toString(),
       leader: "", // Will be updated by onConflictDoUpdate
       isPublic: false, // Will be updated by onConflictDoUpdate
@@ -191,13 +106,13 @@ ponder.on("Ziggurat:NextRoomChosenEvent", async ({ event, context }) => {
     });
 });
 
-// Ziggurat: PartyEndedEvent  
-ponder.on("Ziggurat:PartyEndedEvent", async ({ event, context }) => {
+// Act: PartyEndedEvent  
+ponder.on("Act:PartyEndedEvent" as any, async ({ event, context }: any) => {
   await context.db
     .insert(party)
     .values({
       id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
-      zigguratAddress: event.log.address.toLowerCase(),
+      actAddress: event.log.address.toLowerCase(),
       partyId: event.args.partyId.toString(),
       leader: "", // Will be updated by onConflictDoUpdate
       isPublic: false, // Will be updated by onConflictDoUpdate
@@ -217,13 +132,13 @@ ponder.on("Ziggurat:PartyEndedEvent", async ({ event, context }) => {
     });
 });
 
-// Ziggurat: PartyCancelledEvent
-ponder.on("Ziggurat:PartyCancelledEvent", async ({ event, context }) => {
+// Act: PartyCancelledEvent
+ponder.on("Act:PartyCancelledEvent" as any, async ({ event, context }: any) => {
   await context.db
     .insert(party)
     .values({
       id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
-      zigguratAddress: event.log.address.toLowerCase(),
+      actAddress: event.log.address.toLowerCase(),
       partyId: event.args.partyId.toString(),
       leader: "", // Will be updated by onConflictDoUpdate
       isPublic: false, // Will be updated by onConflictDoUpdate
@@ -243,14 +158,14 @@ ponder.on("Ziggurat:PartyCancelledEvent", async ({ event, context }) => {
 });
 
 
-// Ziggurat: RoomEnteredEvent
-ponder.on("Ziggurat:RoomEnteredEvent", async ({ event, context }) => {
+// Act: RoomEnteredEvent
+ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
   // Get the battle address for this party from the contract
   let battleAddress = "";
   try {
     const battleResult = await context.client.readContract({
       address: event.log.address as `0x${string}`,
-      abi: ZigguratAbi,
+      abi: ActAbi,
       functionName: "partyBattles",
       args: [event.args.partyId, event.args.roomHash]
     });
@@ -268,7 +183,7 @@ ponder.on("Ziggurat:RoomEnteredEvent", async ({ event, context }) => {
     .insert(party)
     .values({
       id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
-      zigguratAddress: event.log.address.toLowerCase(),
+      actAddress: event.log.address.toLowerCase(),
       partyId: event.args.partyId.toString(),
       leader: "", // Will be updated by onConflictDoUpdate
       isPublic: false, // Will be updated by onConflictDoUpdate
@@ -290,11 +205,11 @@ ponder.on("Ziggurat:RoomEnteredEvent", async ({ event, context }) => {
     });
 });
 
-// Ziggurat: ZigguratClosedEvent
-ponder.on("Ziggurat:ZigguratClosedEvent", async ({ event, context }) => {
-  // Update the ziggurat to mark it as closed
+// Act: ActClosedEvent
+ponder.on("Act:ActClosedEvent" as any, async ({ event, context }: any) => {
+  // Update the act to mark it as closed
   await context.db
-    .insert(ziggurat)
+    .insert(act)
     .values({
       address: event.log.address.toLowerCase(),
       trustedForwarder: "", // Will be updated by onConflictDoUpdate
@@ -316,16 +231,16 @@ ponder.on("Ziggurat:ZigguratClosedEvent", async ({ event, context }) => {
     });
 });
 
-// Ziggurat: OperatorTransferred
-ponder.on("Ziggurat:OperatorTransferred", async ({ event, context }) => {
-  console.log("ZIGGURAT OPERATOR TRANSFERRED", {
+// Act: OperatorTransferred
+ponder.on("Act:OperatorTransferred" as any, async ({ event, context }: any) => {
+  console.log("ACT OPERATOR TRANSFERRED", {
     contractAddress: event.log.address.toLowerCase(),
     previousOperator: event.args.previousOperator.toLowerCase(),
     newOperator: event.args.newOperator.toLowerCase()
   });
 
   await context.db
-    .insert(ziggurat)
+    .insert(act)
     .values({
       address: event.log.address.toLowerCase(),
       trustedForwarder: "",
@@ -347,16 +262,16 @@ ponder.on("Ziggurat:OperatorTransferred", async ({ event, context }) => {
     });
 });
 
-// Ziggurat: OwnershipTransferred
-ponder.on("Ziggurat:OwnershipTransferred", async ({ event, context }) => {
-  console.log("ZIGGURAT OWNERSHIP TRANSFERRED", {
+// Act: OwnershipTransferred
+ponder.on("Act:OwnershipTransferred" as any, async ({ event, context }: any) => {
+  console.log("ACT OWNERSHIP TRANSFERRED", {
     contractAddress: event.log.address.toLowerCase(),
     previousOwner: event.args.previousOwner.toLowerCase(),
     newOwner: event.args.newOwner.toLowerCase()
   });
 
   await context.db
-    .insert(ziggurat)
+    .insert(act)
     .values({
       address: event.log.address.toLowerCase(),
       trustedForwarder: "",
@@ -377,4 +292,3 @@ ponder.on("Ziggurat:OwnershipTransferred", async ({ event, context }) => {
       owner: event.args.newOwner.toLowerCase(),
     });
 });
-
