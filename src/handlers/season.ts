@@ -64,7 +64,7 @@ ponder.on("Season:ActAdded" as any, async ({ event, context }: any) => {
       { address: actAddress, abi: ActAbi, functionName: 'owner' },
       { address: actAddress, abi: ActAbi, functionName: 'operator' },
       { address: actAddress, abi: ActAbi, functionName: 'rngSeed' },
-      { address: actAddress, abi: ActAbi, functionName: 'rootRoomHash' },
+      { address: actAddress, abi: ActAbi, functionName: 'ROOT_ROOM_HASH' },
       { address: actAddress, abi: ActAbi, functionName: 'battleFactory' },
       { address: actAddress, abi: ActAbi, functionName: 'deckConfiguration' },
       { address: actAddress, abi: ActAbi, functionName: 'monsterRegistry' },
@@ -92,22 +92,6 @@ ponder.on("Season:ActAdded" as any, async ({ event, context }: any) => {
     createdAt: event.block.timestamp,
   });
 
-  // Create root room
-  console.log("Creating root room with hash:", rootRoomHash.result);
-  await context.db.insert(actRoom).values({
-    id: rootRoomHash.result?.toLowerCase() || '',
-    actAddress: actAddress.toLowerCase(),
-    roomHash: rootRoomHash.result?.toLowerCase() || '',
-    parentRoomHash: "",
-    parentRoomId: "",
-    parentDoorIndex: 0n,
-    revealedAt: event.block.timestamp,
-    roomType: 0n, // Root room type
-    numberOfDoors: 1n, // Root room has 1 door
-    depth: 0n, // Root is depth 0
-    battle: "",
-  });
-  
   // Create season-act relation
   await context.db.insert(seasonAct).values({
     id: `${event.log.address.toLowerCase()}-${actIndex.toString()}`,
