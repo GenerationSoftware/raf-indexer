@@ -54,6 +54,24 @@ ponder.on("Act:PartyMemberJoinedEvent" as any, async ({ event, context }: any) =
 
 // Act: PartyStartedEvent
 ponder.on("Act:PartyStartedEvent" as any, async ({ event, context }: any) => {
+  // Get the room hash for this party from the contract
+  let roomHash = "";
+  try {
+    const roomHashResult = await context.client.readContract({
+      address: event.log.address as `0x${string}`,
+      abi: ActAbi,
+      functionName: "lastRoomHash",
+      args: [event.args.partyId]
+    });
+    roomHash = roomHashResult?.toLowerCase() || "";
+    console.log("PARTY STARTED - Room Hash", {
+      partyId: event.args.partyId.toString(),
+      roomHash: roomHash
+    });
+  } catch (error) {
+    console.log("Failed to read party room hash:", error);
+  }
+
   await context.db
     .insert(party)
     .values({
@@ -63,7 +81,7 @@ ponder.on("Act:PartyStartedEvent" as any, async ({ event, context }: any) => {
       leader: "", // Will be updated by onConflictDoUpdate
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
-      roomHash: "", // Will be updated by onConflictDoUpdate
+      roomHash: roomHash,
       battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(1), // DOOR_CHOSEN
       chosenDoor: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -73,6 +91,7 @@ ponder.on("Act:PartyStartedEvent" as any, async ({ event, context }: any) => {
       endedAt: BigInt(0), // Will be updated by onConflictDoUpdate
     })
     .onConflictDoUpdate({
+      roomHash: roomHash,
       state: BigInt(1), // DOOR_CHOSEN
       startedAt: event.block.timestamp,
     });
@@ -81,6 +100,25 @@ ponder.on("Act:PartyStartedEvent" as any, async ({ event, context }: any) => {
 
 // Act: NextRoomChosenEvent
 ponder.on("Act:NextRoomChosenEvent" as any, async ({ event, context }: any) => {
+  // Get the room hash for this party from the contract
+  let roomHash = "";
+  try {
+    const roomHashResult = await context.client.readContract({
+      address: event.log.address as `0x${string}`,
+      abi: ActAbi,
+      functionName: "lastRoomHash",
+      args: [event.args.partyId]
+    });
+    roomHash = roomHashResult?.toLowerCase() || "";
+    console.log("NEXT ROOM CHOSEN - Room Hash", {
+      partyId: event.args.partyId.toString(),
+      doorIndex: event.args.doorIndex.toString(),
+      roomHash: roomHash
+    });
+  } catch (error) {
+    console.log("Failed to read party room hash:", error);
+  }
+
   // Update the party to mark that a door has been chosen
   await context.db
     .insert(party)
@@ -91,7 +129,7 @@ ponder.on("Act:NextRoomChosenEvent" as any, async ({ event, context }: any) => {
       leader: "", // Will be updated by onConflictDoUpdate
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
-      roomHash: "", // Will be updated by onConflictDoUpdate
+      roomHash: roomHash,
       battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(1), // DOOR_CHOSEN
       chosenDoor: event.args.doorIndex,
@@ -101,6 +139,7 @@ ponder.on("Act:NextRoomChosenEvent" as any, async ({ event, context }: any) => {
       endedAt: BigInt(0), // Will be updated by onConflictDoUpdate
     })
     .onConflictDoUpdate({
+      roomHash: roomHash,
       state: BigInt(1), // DOOR_CHOSEN
       chosenDoor: event.args.doorIndex,
     });
