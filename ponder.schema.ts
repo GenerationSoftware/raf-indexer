@@ -59,12 +59,11 @@ export const partyMember = onchainTable("partyMember", (t) => ({
 }));
 
 export const actRoom = onchainTable("actRoom", (t) => ({
-  id: t.text().primaryKey(), // actAddress + parentRoomHash + parentDoorIndex
+  id: t.text().primaryKey(), // actAddress + roomHash
   actAddress: t.text(),
   roomHash: t.text(), // roomHash
   parentRoomHash: t.text(), // parent room hash
   parentRoomId: t.text(),
-  parentDoorIndex: t.bigint(),
   revealedAt: t.bigint(),
   roomType: t.bigint(),
   depth: t.bigint(), // depth in the act

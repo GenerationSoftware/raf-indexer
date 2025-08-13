@@ -1,5 +1,5 @@
 import { ponder } from "ponder:registry";
-import { act, party, partyMember } from "ponder:schema";
+import { act, party, partyMember, actRoom } from "ponder:schema";
 import ActAbi from "../contracts/abis/Act.json";
 
 // Act: PartyCreatedEvent
@@ -181,6 +181,19 @@ ponder.on("Act:PartyCancelledEvent" as any, async ({ event, context }: any) => {
 
 // Act: RoomEnteredEvent
 ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
+  const roomHash = event.args.roomHash.toLowerCase();
+  const room = event.args.room;
+  const actAddress = event.log.address.toLowerCase();
+  
+  console.log("ROOM ENTERED", {
+    partyId: event.args.partyId.toString(),
+    roomHash: roomHash,
+    depth: room.depth,
+    roomType: room.roomType,
+    doorCount: room.doorCount,
+    monsterIndex1: room.monsterIndex1
+  });
+
   // Get the battle address for this party from the contract
   let battleAddress = "";
   try {
@@ -199,17 +212,60 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
     console.log("Failed to read party battle address:", error);
   }
 
+  // Create or update the actRoom entity
+  // The id is actAddress + roomHash
+  // We'll need to determine parent room from previous party state
+  let parentRoomHash = "";
+  let parentRoomId = "";
+  
+  // Get the previous room for this party to determine parent
+  try {
+    const partyData = await context.db.find(party, {
+      id: actAddress + "-" + event.args.partyId.toString()
+    });
+    if (partyData && partyData.roomHash) {
+      parentRoomHash = partyData.roomHash;
+      parentRoomId = actAddress + "-" + parentRoomHash;
+    }
+  } catch (error) {
+    console.log("Could not find parent room:", error);
+  }
+
+  // Create the actRoom entity
+  await context.db
+    .insert(actRoom)
+    .values({
+      id: actAddress + "-" + roomHash,
+      actAddress: actAddress,
+      roomHash: roomHash,
+      parentRoomHash: parentRoomHash,
+      parentRoomId: parentRoomId,
+      revealedAt: event.block.timestamp,
+      roomType: BigInt(room.roomType),
+      depth: BigInt(room.depth),
+      battle: battleAddress,
+      monsterId: "", // TODO: Look up monster character address from monsterIndex1
+      numberOfDoors: BigInt(room.doorCount),
+    })
+    .onConflictDoUpdate({
+      revealedAt: event.block.timestamp,
+      roomType: BigInt(room.roomType),
+      depth: BigInt(room.depth),
+      battle: battleAddress,
+      numberOfDoors: BigInt(room.doorCount),
+    });
+
   // Update the party's current room location and set state to IN_ROOM
   await context.db
     .insert(party)
     .values({
-      id: event.log.address.toLowerCase() + "-" + event.args.partyId.toString(),
-      actAddress: event.log.address.toLowerCase(),
+      id: actAddress + "-" + event.args.partyId.toString(),
+      actAddress: actAddress,
       partyId: event.args.partyId.toString(),
       leader: "", // Will be updated by onConflictDoUpdate
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
-      roomHash: event.args.roomHash.toLowerCase(),
+      roomHash: roomHash,
       battleAddress: battleAddress,
       state: BigInt(2), // IN_ROOM
       createdTxHash: "", // Will be updated by onConflictDoUpdate
@@ -218,7 +274,7 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
       endedAt: BigInt(0), // Will be updated by onConflictDoUpdate
     })
     .onConflictDoUpdate({
-      roomHash: event.args.roomHash.toLowerCase(),
+      roomHash: roomHash,
       battleAddress: battleAddress,
       state: BigInt(2), // IN_ROOM
     });
