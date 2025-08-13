@@ -44,8 +44,7 @@ export const party = onchainTable("party", (t) => ({
   inviter: t.text(), // address that created the party
   roomHash: t.text(), // current room hash where party is located
   battleAddress: t.text(), // battle contract address for the current room
-  state: t.bigint(), // PartyState enum: 0=CREATED, 1=DOOR_CHOSEN, 2=IN_ROOM, 3=CANCELLED, 4=ESCAPED
-  chosenDoor: t.bigint(), // index of the chosen door
+  state: t.bigint(), // PartyState enum: 0=CREATED, 1=ROOM_CHOSEN, 2=IN_ROOM, 3=WON, 4=LOST, 5=CANCELLED
   createdTxHash: t.text(), // transaction hash that created the party
   createdAt: t.bigint(),
   startedAt: t.bigint(),

@@ -23,7 +23,6 @@ ponder.on("Act:PartyCreatedEvent" as any, async ({ event, context }: any) => {
       roomHash: "", // Default empty - will be set when party enters a room
       battleAddress: "", // Default empty - will be set when party enters a room
       state: BigInt(0), // CREATED
-      chosenDoor: BigInt(0), // Default 0 - no door chosen yet
       createdTxHash: event.transaction.hash,
       createdAt: event.block.timestamp,
       startedAt: BigInt(0),
@@ -83,8 +82,7 @@ ponder.on("Act:PartyStartedEvent" as any, async ({ event, context }: any) => {
       inviter: "", // Will be updated by onConflictDoUpdate
       roomHash: roomHash,
       battleAddress: "", // Will be updated by onConflictDoUpdate
-      state: BigInt(1), // DOOR_CHOSEN
-      chosenDoor: BigInt(0), // Will be updated by onConflictDoUpdate
+      state: BigInt(1), // ROOM_CHOSEN
       createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
       startedAt: event.block.timestamp,
@@ -92,7 +90,7 @@ ponder.on("Act:PartyStartedEvent" as any, async ({ event, context }: any) => {
     })
     .onConflictDoUpdate({
       roomHash: roomHash,
-      state: BigInt(1), // DOOR_CHOSEN
+      state: BigInt(1), // ROOM_CHOSEN
       startedAt: event.block.timestamp,
     });
 });
@@ -100,26 +98,14 @@ ponder.on("Act:PartyStartedEvent" as any, async ({ event, context }: any) => {
 
 // Act: NextRoomChosenEvent
 ponder.on("Act:NextRoomChosenEvent" as any, async ({ event, context }: any) => {
-  // Get the room hash for this party from the contract
-  let roomHash = "";
-  try {
-    const roomHashResult = await context.client.readContract({
-      address: event.log.address as `0x${string}`,
-      abi: ActAbi,
-      functionName: "lastRoomHash",
-      args: [event.args.partyId]
-    });
-    roomHash = roomHashResult?.toLowerCase() || "";
-    console.log("NEXT ROOM CHOSEN - Room Hash", {
-      partyId: event.args.partyId.toString(),
-      doorIndex: event.args.doorIndex.toString(),
-      roomHash: roomHash
-    });
-  } catch (error) {
-    console.log("Failed to read party room hash:", error);
-  }
+  // The new event signature includes the roomHash directly
+  const roomHash = event.args.roomHash?.toLowerCase() || "";
+  console.log("NEXT ROOM CHOSEN", {
+    partyId: event.args.partyId.toString(),
+    roomHash: roomHash
+  });
 
-  // Update the party to mark that a door has been chosen
+  // Update the party to mark that a room has been chosen
   await context.db
     .insert(party)
     .values({
@@ -131,8 +117,7 @@ ponder.on("Act:NextRoomChosenEvent" as any, async ({ event, context }: any) => {
       inviter: "", // Will be updated by onConflictDoUpdate
       roomHash: roomHash,
       battleAddress: "", // Will be updated by onConflictDoUpdate
-      state: BigInt(1), // DOOR_CHOSEN
-      chosenDoor: event.args.doorIndex,
+      state: BigInt(1), // ROOM_CHOSEN
       createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
       startedAt: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -140,8 +125,7 @@ ponder.on("Act:NextRoomChosenEvent" as any, async ({ event, context }: any) => {
     })
     .onConflictDoUpdate({
       roomHash: roomHash,
-      state: BigInt(1), // DOOR_CHOSEN
-      chosenDoor: event.args.doorIndex,
+      state: BigInt(1), // ROOM_CHOSEN
     });
 });
 
@@ -159,7 +143,6 @@ ponder.on("Act:PartyEndedEvent" as any, async ({ event, context }: any) => {
       roomHash: "", // Will be updated by onConflictDoUpdate
       battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(3), // ESCAPED
-      chosenDoor: BigInt(0), // Will be updated by onConflictDoUpdate
       createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
       startedAt: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -185,7 +168,6 @@ ponder.on("Act:PartyCancelledEvent" as any, async ({ event, context }: any) => {
       roomHash: "", // Will be updated by onConflictDoUpdate
       battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(4), // CANCELLED
-      chosenDoor: BigInt(0), // Will be updated by onConflictDoUpdate
       createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
       startedAt: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -230,7 +212,6 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
       roomHash: event.args.roomHash.toLowerCase(),
       battleAddress: battleAddress,
       state: BigInt(2), // IN_ROOM
-      chosenDoor: BigInt(0), // Reset when entering new room
       createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
       startedAt: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -240,7 +221,6 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
       roomHash: event.args.roomHash.toLowerCase(),
       battleAddress: battleAddress,
       state: BigInt(2), // IN_ROOM
-      chosenDoor: BigInt(0), // Reset when entering new room
     });
 });
 
