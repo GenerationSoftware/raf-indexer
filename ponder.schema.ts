@@ -7,12 +7,12 @@ export const act = onchainTable("act", (t) => ({
   owner: t.text(),
   operator: t.text(),
   rngSeed: t.text(),
-  rootRoomHash: t.text(),
-  readyAimFireFactory: t.text(),
+  rootRoomId: t.bigint(),
+  battleFactory: t.text(),
   deckConfiguration: t.text(),
   monsterRegistry: t.text(),
-  maxDoorCount: t.bigint(),
-  monsterSigma: t.bigint(),
+  playerDeckManager: t.text(),
+  maxDepth: t.bigint(),
   turnDuration: t.bigint(),
   isClosed: t.boolean(),
   createdAt: t.bigint(),
@@ -42,7 +42,7 @@ export const party = onchainTable("party", (t) => ({
   leader: t.text(), // leader character contract address
   isPublic: t.boolean(),
   inviter: t.text(), // address that created the party
-  roomHash: t.text(), // current room hash where party is located
+  roomId: t.bigint(), // current room id where party is located
   battleAddress: t.text(), // battle contract address for the current room
   state: t.bigint(), // PartyState enum: 0=CREATED, 1=ROOM_CHOSEN, 2=IN_ROOM, 3=WON, 4=LOST, 5=CANCELLED
   createdTxHash: t.text(), // transaction hash that created the party
@@ -59,17 +59,16 @@ export const partyMember = onchainTable("partyMember", (t) => ({
 }));
 
 export const actRoom = onchainTable("actRoom", (t) => ({
-  id: t.text().primaryKey(), // actAddress + roomHash
+  id: t.text().primaryKey(), // actAddress + roomId
   actAddress: t.text(),
-  roomHash: t.text(), // roomHash
-  parentRoomHash: t.text(), // parent room hash
-  parentRoomId: t.text(),
-  revealedAt: t.bigint(),
+  roomId: t.bigint(), // roomId (uint32)
   roomType: t.bigint(),
-  depth: t.bigint(), // depth in the act
+  monsterIndex1: t.bigint(),
+  monsterIndex2: t.bigint(),
+  monsterIndex3: t.bigint(),
+  nextRoomIds: t.text(), // JSON array of next room ids
   battle: t.text(), // battle contract address when room is entered
-  monsterId: t.text(), // monster character contract address
-  numberOfDoors: t.bigint(), // number of doors in this room
+  revealedAt: t.bigint(),
 }));
 
 // Battle tables
@@ -198,13 +197,9 @@ export const deckConfiguration = onchainTable("deckConfiguration", (t) => ({
 }));
 
 // Relations - Simple and safe
-export const actRelations = relations(act, ({ one, many }) => ({
+export const actRelations = relations(act, ({ many }) => ({
   parties: many(party),
   rooms: many(actRoom),
-  rootRoom: one(actRoom, {
-    fields: [act.rootRoomHash],
-    references: [actRoom.id],
-  })
 }));
 
 export const partyRelations = relations(party, ({ one, many }) => ({
@@ -213,10 +208,6 @@ export const partyRelations = relations(party, ({ one, many }) => ({
     references: [act.address],
   }),
   members: many(partyMember),
-  currentRoom: one(actRoom, {
-    fields: [party.roomHash],
-    references: [actRoom.roomHash],
-  }),
   battle: one(battle, {
     fields: [party.battleAddress],
     references: [battle.id],
@@ -234,22 +225,10 @@ export const partyMemberRelations = relations(partyMember, ({ one }) => ({
   })
 }));
 
-export const actRoomRelations = relations(actRoom, ({ one, many }) => ({
+export const actRoomRelations = relations(actRoom, ({ one }) => ({
   act: one(act, {
     fields: [actRoom.actAddress],
     references: [act.address],
-  }),
-  parent: one(actRoom, {
-    fields: [actRoom.parentRoomId],
-    references: [actRoom.id],
-    relationName: "parentChild"
-  }),
-  children: many(actRoom, {
-    relationName: "parentChild"
-  }),
-  monster: one(monster, {
-    fields: [actRoom.monsterId],
-    references: [monster.characterAddress],
   })
 }));
 

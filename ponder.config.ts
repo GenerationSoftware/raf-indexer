@@ -14,6 +14,7 @@ import CharacterFactoryAbi from "./src/contracts/abis/CharacterFactory.json";
 import StandardDeckLogicAbi from "./src/contracts/abis/StandardDeckLogic.json";
 import DeckConfigurationAbi from "./src/contracts/abis/DeckConfiguration.json";
 import RoomRewardsAbi from "./src/contracts/abis/RoomRewards.json";
+import BattleRoomAbi from "./src/contracts/abis/BattleRoom.json";
 
 // Helper function to get deployment info by contract name
 function getDeployment(contractName: string) {
@@ -109,6 +110,11 @@ export default createConfig({
       chain: "custom",
       abi: RoomRewardsAbi as Abi,
       ...getDeployment("RoomRewards"),
+    },
+    BattleRoom: {
+      chain: "custom",
+      abi: BattleRoomAbi as Abi,
+      ...getDeployment("BattleRoom"),
     },
     DeckConfiguration: {
       chain: "custom",

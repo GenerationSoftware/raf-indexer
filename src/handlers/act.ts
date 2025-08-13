@@ -20,7 +20,7 @@ ponder.on("Act:PartyCreatedEvent" as any, async ({ event, context }: any) => {
       leader: event.args.leader.toLowerCase(),
       isPublic: event.args.isPublic,
       inviter: event.args.inviter.toLowerCase(),
-      roomHash: "", // Default empty - will be set when party enters a room
+      roomId: BigInt(0), // Default 0 - will be set when party enters a room
       battleAddress: "", // Default empty - will be set when party enters a room
       state: BigInt(0), // CREATED
       createdTxHash: event.transaction.hash,
@@ -53,22 +53,22 @@ ponder.on("Act:PartyMemberJoinedEvent" as any, async ({ event, context }: any) =
 
 // Act: PartyStartedEvent
 ponder.on("Act:PartyStartedEvent" as any, async ({ event, context }: any) => {
-  // Get the room hash for this party from the contract
-  let roomHash = "";
+  // Get the room id for this party from the contract
+  let roomId = BigInt(0);
   try {
-    const roomHashResult = await context.client.readContract({
+    const roomIdResult = await context.client.readContract({
       address: event.log.address as `0x${string}`,
       abi: ActAbi,
-      functionName: "lastRoomHash",
+      functionName: "lastRoomId",
       args: [event.args.partyId]
     });
-    roomHash = roomHashResult?.toLowerCase() || "";
-    console.log("PARTY STARTED - Room Hash", {
+    roomId = BigInt(roomIdResult || 0);
+    console.log("PARTY STARTED - Room ID", {
       partyId: event.args.partyId.toString(),
-      roomHash: roomHash
+      roomId: roomId.toString()
     });
   } catch (error) {
-    console.log("Failed to read party room hash:", error);
+    console.log("Failed to read party room id:", error);
   }
 
   await context.db
@@ -80,7 +80,7 @@ ponder.on("Act:PartyStartedEvent" as any, async ({ event, context }: any) => {
       leader: "", // Will be updated by onConflictDoUpdate
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
-      roomHash: roomHash,
+      roomId: roomId,
       battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(1), // ROOM_CHOSEN
       createdTxHash: "", // Will be updated by onConflictDoUpdate
@@ -89,7 +89,7 @@ ponder.on("Act:PartyStartedEvent" as any, async ({ event, context }: any) => {
       endedAt: BigInt(0), // Will be updated by onConflictDoUpdate
     })
     .onConflictDoUpdate({
-      roomHash: roomHash,
+      roomId: roomId,
       state: BigInt(1), // ROOM_CHOSEN
       startedAt: event.block.timestamp,
     });
@@ -98,11 +98,11 @@ ponder.on("Act:PartyStartedEvent" as any, async ({ event, context }: any) => {
 
 // Act: NextRoomChosenEvent
 ponder.on("Act:NextRoomChosenEvent" as any, async ({ event, context }: any) => {
-  // The new event signature includes the roomHash directly
-  const roomHash = event.args.roomHash?.toLowerCase() || "";
+  // The new event signature includes the roomId directly
+  const roomId = BigInt(event.args.roomId || 0);
   console.log("NEXT ROOM CHOSEN", {
     partyId: event.args.partyId.toString(),
-    roomHash: roomHash
+    roomId: roomId.toString()
   });
 
   // Update the party to mark that a room has been chosen
@@ -115,7 +115,7 @@ ponder.on("Act:NextRoomChosenEvent" as any, async ({ event, context }: any) => {
       leader: "", // Will be updated by onConflictDoUpdate
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
-      roomHash: roomHash,
+      roomId: roomId,
       battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(1), // ROOM_CHOSEN
       createdTxHash: "", // Will be updated by onConflictDoUpdate
@@ -124,7 +124,7 @@ ponder.on("Act:NextRoomChosenEvent" as any, async ({ event, context }: any) => {
       endedAt: BigInt(0), // Will be updated by onConflictDoUpdate
     })
     .onConflictDoUpdate({
-      roomHash: roomHash,
+      roomId: roomId,
       state: BigInt(1), // ROOM_CHOSEN
     });
 });
@@ -140,7 +140,7 @@ ponder.on("Act:PartyEndedEvent" as any, async ({ event, context }: any) => {
       leader: "", // Will be updated by onConflictDoUpdate
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
-      roomHash: "", // Will be updated by onConflictDoUpdate
+      roomId: BigInt(0), // Will be updated by onConflictDoUpdate
       battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(3), // ESCAPED
       createdTxHash: "", // Will be updated by onConflictDoUpdate
@@ -165,7 +165,7 @@ ponder.on("Act:PartyCancelledEvent" as any, async ({ event, context }: any) => {
       leader: "", // Will be updated by onConflictDoUpdate
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
-      roomHash: "", // Will be updated by onConflictDoUpdate
+      roomId: BigInt(0), // Will be updated by onConflictDoUpdate
       battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(4), // CANCELLED
       createdTxHash: "", // Will be updated by onConflictDoUpdate
@@ -181,17 +181,18 @@ ponder.on("Act:PartyCancelledEvent" as any, async ({ event, context }: any) => {
 
 // Act: RoomEnteredEvent
 ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
-  const roomHash = event.args.roomHash.toLowerCase();
+  const roomId = BigInt(event.args.roomId || 0);
   const room = event.args.room;
   const actAddress = event.log.address.toLowerCase();
   
   console.log("ROOM ENTERED", {
     partyId: event.args.partyId.toString(),
-    roomHash: roomHash,
-    depth: room.depth,
+    roomId: roomId.toString(),
     roomType: room.roomType,
-    doorCount: room.doorCount,
-    monsterIndex1: room.monsterIndex1
+    monsterIndex1: room.monsterIndex1,
+    monsterIndex2: room.monsterIndex2,
+    monsterIndex3: room.monsterIndex3,
+    nextRooms: room.nextRooms
   });
 
   // Get the battle address for this party from the contract
@@ -201,7 +202,7 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
       address: event.log.address as `0x${string}`,
       abi: ActAbi,
       functionName: "partyBattles",
-      args: [event.args.partyId, event.args.roomHash]
+      args: [event.args.partyId, event.args.roomId]
     });
     battleAddress = battleResult?.toLowerCase() || "";
     console.log("PARTY BATTLE ADDRESS", {
@@ -212,47 +213,29 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
     console.log("Failed to read party battle address:", error);
   }
 
-  // Create or update the actRoom entity
-  // The id is actAddress + roomHash
-  // We'll need to determine parent room from previous party state
-  let parentRoomHash = "";
-  let parentRoomId = "";
-  
-  // Get the previous room for this party to determine parent
-  try {
-    const partyData = await context.db.find(party, {
-      id: actAddress + "-" + event.args.partyId.toString()
-    });
-    if (partyData && partyData.roomHash) {
-      parentRoomHash = partyData.roomHash;
-      parentRoomId = actAddress + "-" + parentRoomHash;
-    }
-  } catch (error) {
-    console.log("Could not find parent room:", error);
-  }
-
   // Create the actRoom entity
   await context.db
     .insert(actRoom)
     .values({
-      id: actAddress + "-" + roomHash,
+      id: actAddress + "-" + roomId.toString(),
       actAddress: actAddress,
-      roomHash: roomHash,
-      parentRoomHash: parentRoomHash,
-      parentRoomId: parentRoomId,
-      revealedAt: event.block.timestamp,
+      roomId: roomId,
       roomType: BigInt(room.roomType),
-      depth: BigInt(room.depth),
+      monsterIndex1: BigInt(room.monsterIndex1),
+      monsterIndex2: BigInt(room.monsterIndex2),
+      monsterIndex3: BigInt(room.monsterIndex3),
+      nextRoomIds: JSON.stringify(room.nextRooms || []),
       battle: battleAddress,
-      monsterId: "", // TODO: Look up monster character address from monsterIndex1
-      numberOfDoors: BigInt(room.doorCount),
+      revealedAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
-      revealedAt: event.block.timestamp,
       roomType: BigInt(room.roomType),
-      depth: BigInt(room.depth),
+      monsterIndex1: BigInt(room.monsterIndex1),
+      monsterIndex2: BigInt(room.monsterIndex2),
+      monsterIndex3: BigInt(room.monsterIndex3),
+      nextRoomIds: JSON.stringify(room.nextRooms || []),
       battle: battleAddress,
-      numberOfDoors: BigInt(room.doorCount),
+      revealedAt: event.block.timestamp,
     });
 
   // Update the party's current room location and set state to IN_ROOM
@@ -265,7 +248,7 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
       leader: "", // Will be updated by onConflictDoUpdate
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
-      roomHash: roomHash,
+      roomId: roomId,
       battleAddress: battleAddress,
       state: BigInt(2), // IN_ROOM
       createdTxHash: "", // Will be updated by onConflictDoUpdate
@@ -274,7 +257,7 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
       endedAt: BigInt(0), // Will be updated by onConflictDoUpdate
     })
     .onConflictDoUpdate({
-      roomHash: roomHash,
+      roomId: roomId,
       battleAddress: battleAddress,
       state: BigInt(2), // IN_ROOM
     });
@@ -291,12 +274,15 @@ ponder.on("Act:ActClosedEvent" as any, async ({ event, context }: any) => {
       owner: "", // Will be updated by onConflictDoUpdate
       operator: "", // Will be updated by onConflictDoUpdate
       rngSeed: "", // Will be updated by onConflictDoUpdate
-      rootRoomHash: "",
-      readyAimFireFactory: "", // Will be updated by onConflictDoUpdate
+      rootRoomId: BigInt(0),
+      battleFactory: "",
+      playerDeckManager: "",
+      maxDepth: BigInt(0),
+      battleFactory: "", // Will be updated by onConflictDoUpdate
       deckConfiguration: "", // Will be updated by onConflictDoUpdate
       monsterRegistry: "", // Will be updated by onConflictDoUpdate
-      maxDoorCount: BigInt(0), // Will be updated by onConflictDoUpdate
-      monsterSigma: BigInt(0), // Will be updated by onConflictDoUpdate
+      playerDeckManager: "", // Will be updated by onConflictDoUpdate
+      maxDepth: BigInt(0), // Will be updated by onConflictDoUpdate
       turnDuration: BigInt(0), // Will be updated by onConflictDoUpdate
       isClosed: true,
       createdAt: event.block.timestamp,
@@ -322,7 +308,10 @@ ponder.on("Act:OperatorTransferred" as any, async ({ event, context }: any) => {
       owner: "",
       operator: event.args.newOperator.toLowerCase(),
       rngSeed: "",
-      rootRoomHash: "",
+      rootRoomId: BigInt(0),
+      battleFactory: "",
+      playerDeckManager: "",
+      maxDepth: BigInt(0),
       readyAimFireFactory: "",
       deckConfiguration: "",
       monsterRegistry: "",
@@ -353,7 +342,10 @@ ponder.on("Act:OwnershipTransferred" as any, async ({ event, context }: any) => 
       owner: event.args.newOwner.toLowerCase(),
       operator: "",
       rngSeed: "",
-      rootRoomHash: "",
+      rootRoomId: BigInt(0),
+      battleFactory: "",
+      playerDeckManager: "",
+      maxDepth: BigInt(0),
       readyAimFireFactory: "",
       deckConfiguration: "",
       monsterRegistry: "",
