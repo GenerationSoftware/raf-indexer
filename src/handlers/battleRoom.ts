@@ -48,7 +48,6 @@ ponder.on("BattleRoom:BattleCreated" as any, async ({ event, context }: any) => 
       monsterIndex1: BigInt(0), // Will be updated by onConflictDoUpdate
       monsterIndex2: BigInt(0), // Will be updated by onConflictDoUpdate
       monsterIndex3: BigInt(0), // Will be updated by onConflictDoUpdate
-      nextRoomIds: "", // Will be updated by onConflictDoUpdate
       battle: battleAddress,
       revealedAt: BigInt(0), // Will be updated by onConflictDoUpdate
     })

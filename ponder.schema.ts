@@ -66,9 +66,17 @@ export const actRoom = onchainTable("actRoom", (t) => ({
   monsterIndex1: t.bigint(),
   monsterIndex2: t.bigint(),
   monsterIndex3: t.bigint(),
-  nextRoomIds: t.text(), // JSON array of next room ids
   battle: t.text(), // battle contract address when room is entered
   revealedAt: t.bigint(),
+}));
+
+// Junction table for room connections (forms a directed graph)
+export const actRoomConnection = onchainTable("actRoomConnection", (t) => ({
+  id: t.text().primaryKey(), // fromRoomId + "-" + toRoomId + "-" + slotIndex
+  actAddress: t.text(),
+  fromRoomId: t.text(), // actAddress + roomId of parent room
+  toRoomId: t.text(), // actAddress + roomId of child room
+  slotIndex: t.bigint(), // index in the nextRooms array (0-6)
 }));
 
 // Battle tables
@@ -225,10 +233,31 @@ export const partyMemberRelations = relations(partyMember, ({ one }) => ({
   })
 }));
 
-export const actRoomRelations = relations(actRoom, ({ one }) => ({
+export const actRoomRelations = relations(actRoom, ({ one, many }) => ({
   act: one(act, {
     fields: [actRoom.actAddress],
     references: [act.address],
+  }),
+  // Outgoing connections (this room -> next rooms)
+  outgoingConnections: many(actRoomConnection, {
+    relationName: "fromRoom"
+  }),
+  // Incoming connections (previous rooms -> this room)
+  incomingConnections: many(actRoomConnection, {
+    relationName: "toRoom"
+  })
+}));
+
+export const actRoomConnectionRelations = relations(actRoomConnection, ({ one }) => ({
+  fromRoom: one(actRoom, {
+    fields: [actRoomConnection.fromRoomId],
+    references: [actRoom.id],
+    relationName: "fromRoom"
+  }),
+  toRoom: one(actRoom, {
+    fields: [actRoomConnection.toRoomId],
+    references: [actRoom.id],
+    relationName: "toRoom"
   })
 }));
 

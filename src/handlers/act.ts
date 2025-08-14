@@ -1,5 +1,5 @@
 import { ponder } from "ponder:registry";
-import { act, party, partyMember, actRoom } from "ponder:schema";
+import { act, party, partyMember, actRoom, actRoomConnection } from "ponder:schema";
 import ActAbi from "../contracts/abis/Act.json";
 
 // Act: PartyCreatedEvent
@@ -214,17 +214,17 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
   }
 
   // Create the actRoom entity
+  const currentRoomFullId = actAddress + "-" + roomId.toString();
   await context.db
     .insert(actRoom)
     .values({
-      id: actAddress + "-" + roomId.toString(),
+      id: currentRoomFullId,
       actAddress: actAddress,
       roomId: roomId,
       roomType: BigInt(room.roomType),
       monsterIndex1: BigInt(room.monsterIndex1),
       monsterIndex2: BigInt(room.monsterIndex2),
       monsterIndex3: BigInt(room.monsterIndex3),
-      nextRoomIds: JSON.stringify(room.nextRooms || []),
       battle: battleAddress,
       revealedAt: event.block.timestamp,
     })
@@ -233,10 +233,34 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
       monsterIndex1: BigInt(room.monsterIndex1),
       monsterIndex2: BigInt(room.monsterIndex2),
       monsterIndex3: BigInt(room.monsterIndex3),
-      nextRoomIds: JSON.stringify(room.nextRooms || []),
       battle: battleAddress,
       revealedAt: event.block.timestamp,
     });
+
+  // Create room connections for the graph structure
+  if (room.nextRooms && Array.isArray(room.nextRooms)) {
+    for (let i = 0; i < room.nextRooms.length; i++) {
+      const nextRoomId = room.nextRooms[i];
+      if (nextRoomId && nextRoomId > 0) { // Skip empty/zero room IDs
+        const nextRoomFullId = actAddress + "-" + nextRoomId.toString();
+        const connectionId = currentRoomFullId + "-" + nextRoomFullId + "-" + i.toString();
+        
+        await context.db
+          .insert(actRoomConnection)
+          .values({
+            id: connectionId,
+            actAddress: actAddress,
+            fromRoomId: currentRoomFullId,
+            toRoomId: nextRoomFullId,
+            slotIndex: BigInt(i),
+          })
+          .onConflictDoUpdate({
+            // Connection shouldn't change once created
+            slotIndex: BigInt(i),
+          });
+      }
+    }
+  }
 
   // Update the party's current room location and set state to IN_ROOM
   await context.db
