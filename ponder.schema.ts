@@ -67,7 +67,6 @@ export const actRoom = onchainTable("actRoom", (t) => ({
   monsterIndex1: t.bigint(),
   monsterIndex2: t.bigint(),
   monsterIndex3: t.bigint(),
-  battle: t.text(), // battle contract address when room is entered
   revealedAt: t.bigint(),
 }));
 

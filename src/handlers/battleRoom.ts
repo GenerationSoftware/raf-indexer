@@ -1,5 +1,5 @@
 import { ponder } from "ponder:registry";
-import { battle, party, actRoom } from "ponder:schema";
+import { battle, party } from "ponder:schema";
 
 // BattleRoom: BattleCreated
 ponder.on("BattleRoom:BattleCreated" as any, async ({ event, context }: any) => {
@@ -35,24 +35,6 @@ ponder.on("BattleRoom:BattleCreated" as any, async ({ event, context }: any) => 
     })
     .onConflictDoUpdate({
       battleAddress: battleAddress,
-    });
-
-  // Update the actRoom with the battle address
-  await context.db
-    .insert(actRoom)
-    .values({
-      id: actAddress + "-" + roomId.toString(),
-      actAddress: actAddress,
-      roomId: roomId,
-      roomType: BigInt(0), // Will be updated by onConflictDoUpdate
-      monsterIndex1: BigInt(0), // Will be updated by onConflictDoUpdate
-      monsterIndex2: BigInt(0), // Will be updated by onConflictDoUpdate
-      monsterIndex3: BigInt(0), // Will be updated by onConflictDoUpdate
-      battle: battleAddress,
-      revealedAt: BigInt(0), // Will be updated by onConflictDoUpdate
-    })
-    .onConflictDoUpdate({
-      battle: battleAddress,
     });
 
   // Create the battle entity

@@ -195,24 +195,6 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
     nextRooms: room.nextRooms
   });
 
-  // Get the battle address for this party from the contract
-  let battleAddress = "";
-  try {
-    const battleResult = await context.client.readContract({
-      address: event.log.address as `0x${string}`,
-      abi: ActAbi,
-      functionName: "partyBattles",
-      args: [event.args.partyId, event.args.roomId]
-    });
-    battleAddress = battleResult?.toLowerCase() || "";
-    console.log("PARTY BATTLE ADDRESS", {
-      partyId: event.args.partyId.toString(),
-      battleAddress: battleAddress
-    });
-  } catch (error) {
-    console.log("Failed to read party battle address:", error);
-  }
-
   // Create the actRoom entity
   const currentRoomFullId = actAddress + "-" + roomId.toString();
   await context.db
@@ -222,18 +204,16 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
       actAddress: actAddress,
       roomId: roomId,
       roomType: BigInt(room.roomType),
-      monsterIndex1: BigInt(room.monsterIndex1),
-      monsterIndex2: BigInt(room.monsterIndex2),
-      monsterIndex3: BigInt(room.monsterIndex3),
-      battle: battleAddress,
+      monsterIndex1: room.monsterIndex1 ? BigInt(room.monsterIndex1) : BigInt(0),
+      monsterIndex2: room.monsterIndex2 ? BigInt(room.monsterIndex2) : BigInt(0),
+      monsterIndex3: room.monsterIndex3 ? BigInt(room.monsterIndex3) : BigInt(0),
       revealedAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
       roomType: BigInt(room.roomType),
-      monsterIndex1: BigInt(room.monsterIndex1),
-      monsterIndex2: BigInt(room.monsterIndex2),
-      monsterIndex3: BigInt(room.monsterIndex3),
-      battle: battleAddress,
+      monsterIndex1: room.monsterIndex1 ? BigInt(room.monsterIndex1) : BigInt(0),
+      monsterIndex2: room.monsterIndex2 ? BigInt(room.monsterIndex2) : BigInt(0),
+      monsterIndex3: room.monsterIndex3 ? BigInt(room.monsterIndex3) : BigInt(0),
       revealedAt: event.block.timestamp,
     });
 
@@ -273,7 +253,7 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
       roomId: roomId,
-      battleAddress: battleAddress,
+      battleAddress: "", // Will be set by BattleRoom:BattleCreated event
       state: BigInt(2), // IN_ROOM
       createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -282,7 +262,6 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
     })
     .onConflictDoUpdate({
       roomId: roomId,
-      battleAddress: battleAddress,
       state: BigInt(2), // IN_ROOM
     });
 });
