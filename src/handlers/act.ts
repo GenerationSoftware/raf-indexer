@@ -298,7 +298,7 @@ ponder.on("Act:ActClosedEvent" as any, async ({ event, context }: any) => {
       owner: "", // Will be updated by onConflictDoUpdate
       operator: "", // Will be updated by onConflictDoUpdate
       rngSeed: "", // Will be updated by onConflictDoUpdate
-      rootRoomId: BigInt(0),
+      startingRoomId: BigInt(0),
       battleFactory: "",
       playerDeckManager: "",
       maxDepth: BigInt(0),
@@ -332,7 +332,7 @@ ponder.on("Act:OperatorTransferred" as any, async ({ event, context }: any) => {
       owner: "",
       operator: event.args.newOperator.toLowerCase(),
       rngSeed: "",
-      rootRoomId: BigInt(0),
+      startingRoomId: BigInt(0),
       battleFactory: "",
       playerDeckManager: "",
       maxDepth: BigInt(0),
@@ -366,7 +366,7 @@ ponder.on("Act:OwnershipTransferred" as any, async ({ event, context }: any) => 
       owner: event.args.newOwner.toLowerCase(),
       operator: "",
       rngSeed: "",
-      rootRoomId: BigInt(0),
+      startingRoomId: BigInt(0),
       battleFactory: "",
       playerDeckManager: "",
       maxDepth: BigInt(0),

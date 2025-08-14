@@ -58,7 +58,7 @@
   },
   {
     "type": "function",
-    "name": "ROOT_ROOM_ID",
+    "name": "STARTING_ROOM_ID",
     "inputs": [],
     "outputs": [
       {

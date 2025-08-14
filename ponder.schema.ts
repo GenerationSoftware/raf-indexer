@@ -7,7 +7,7 @@ export const act = onchainTable("act", (t) => ({
   owner: t.text(),
   operator: t.text(),
   rngSeed: t.text(),
-  rootRoomId: t.bigint(),
+  startingRoomId: t.bigint(),
   battleFactory: t.text(),
   deckConfiguration: t.text(),
   monsterRegistry: t.text(),
