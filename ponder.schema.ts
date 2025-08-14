@@ -20,6 +20,7 @@ export const act = onchainTable("act", (t) => ({
 
 export const season = onchainTable("season", (t) => ({
   address: t.text().primaryKey(), // contract address
+  name: t.text(),
   trustedForwarder: t.text(),
   owner: t.text(),
   operator: t.text(),

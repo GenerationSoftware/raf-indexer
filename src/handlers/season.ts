@@ -8,6 +8,7 @@ ponder.on("Season:OwnershipTransferred" as any, async ({ event, context }: any) 
     .insert(season)
     .values({
       address: event.log.address.toLowerCase(),
+      name: "", // Will be updated by onConflictDoUpdate
       owner: event.args.newOwner.toLowerCase(),
       trustedForwarder: "",
       operator: "",
@@ -21,10 +22,18 @@ ponder.on("Season:OwnershipTransferred" as any, async ({ event, context }: any) 
 
 // Season: SeasonCreated
 ponder.on("Season:SeasonCreated" as any, async ({ event, context }: any) => {
+  console.log("SEASON CREATED", {
+    address: event.log.address.toLowerCase(),
+    name: event.args.name,
+    owner: event.args.owner.toLowerCase(),
+    operator: event.args.operator.toLowerCase()
+  });
+
   await context.db
     .insert(season)
     .values({
       address: event.log.address.toLowerCase(),
+      name: event.args.name || "",
       trustedForwarder: event.args.trustedForwarder.toLowerCase(),
       owner: event.args.owner.toLowerCase(),
       operator: event.args.operator.toLowerCase(),
@@ -32,6 +41,7 @@ ponder.on("Season:SeasonCreated" as any, async ({ event, context }: any) => {
       createdAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
+      name: event.args.name || "",
       owner: event.args.owner.toLowerCase(),
       trustedForwarder: event.args.trustedForwarder.toLowerCase(),
       operator: event.args.operator.toLowerCase(),
@@ -50,12 +60,12 @@ ponder.on("Season:ActAdded" as any, async ({ event, context }: any) => {
     owner,
     operator,
     rngSeed,
-    rootRoomHash,
+    rootRoomId,
     battleFactory,
     deckConfiguration,
     monsterRegistry,
-    maxDoorCount,
-    monsterSigma,
+    playerDeckManager,
+    maxDepth,
     turnDuration
   ] = await context.client.multicall({
     multicallAddress: "0xca11bde05977b3631167028862be2a173976ca11",
@@ -64,12 +74,12 @@ ponder.on("Season:ActAdded" as any, async ({ event, context }: any) => {
       { address: actAddress, abi: ActAbi, functionName: 'owner' },
       { address: actAddress, abi: ActAbi, functionName: 'operator' },
       { address: actAddress, abi: ActAbi, functionName: 'rngSeed' },
-      { address: actAddress, abi: ActAbi, functionName: 'ROOT_ROOM_HASH' },
+      { address: actAddress, abi: ActAbi, functionName: 'ROOT_ROOM_ID' },
       { address: actAddress, abi: ActAbi, functionName: 'battleFactory' },
       { address: actAddress, abi: ActAbi, functionName: 'deckConfiguration' },
       { address: actAddress, abi: ActAbi, functionName: 'monsterRegistry' },
-      { address: actAddress, abi: ActAbi, functionName: 'MAX_DOOR_COUNT' },
-      { address: actAddress, abi: ActAbi, functionName: 'MONSTER_SIGMA' },
+      { address: actAddress, abi: ActAbi, functionName: 'playerDeckManager' },
+      { address: actAddress, abi: ActAbi, functionName: 'maxDepth' },
       { address: actAddress, abi: ActAbi, functionName: 'TURN_DURATION' }
     ]
   });
@@ -81,14 +91,14 @@ ponder.on("Season:ActAdded" as any, async ({ event, context }: any) => {
     owner: owner.result?.toLowerCase() || '',
     operator: operator.result?.toLowerCase() || '',
     rngSeed: rngSeed.result || '',
-    rootRoomHash: rootRoomHash.result?.toLowerCase() || '',
-    isClosed: false,
-    readyAimFireFactory: battleFactory.result?.toLowerCase() || '',
+    rootRoomId: BigInt(rootRoomId.result || 0),
+    battleFactory: battleFactory.result?.toLowerCase() || '',
     deckConfiguration: deckConfiguration.result?.toLowerCase() || '',
     monsterRegistry: monsterRegistry.result?.toLowerCase() || '',
-    maxDoorCount: maxDoorCount.result || 0n,
-    monsterSigma: monsterSigma.result || 0n,
+    playerDeckManager: playerDeckManager.result?.toLowerCase() || '',
+    maxDepth: BigInt(maxDepth.result || 0),
     turnDuration: turnDuration.result || 0n,
+    isClosed: false,
     createdAt: event.block.timestamp,
   });
 
@@ -106,6 +116,10 @@ ponder.on("Season:ActAdded" as any, async ({ event, context }: any) => {
     .insert(season)
     .values({
       address: event.log.address.toLowerCase(),
+      name: "", // Will be updated by onConflictDoUpdate
+      trustedForwarder: "",
+      owner: "",
+      operator: "",
       currentActIndex: actIndex,
       createdAt: event.block.timestamp,
     })
@@ -129,7 +143,12 @@ ponder.on("Season:OperatorTransferred" as any, async ({ event, context }: any) =
     .insert(season)
     .values({
       address: event.log.address.toLowerCase(),
-      operator: event.args.newOperator.toLowerCase()
+      name: "", // Will be updated by onConflictDoUpdate
+      trustedForwarder: "",
+      owner: "",
+      operator: event.args.newOperator.toLowerCase(),
+      currentActIndex: 0n,
+      createdAt: event.block.timestamp
     })
     .onConflictDoUpdate({
       operator: event.args.newOperator.toLowerCase()
