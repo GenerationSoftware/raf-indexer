@@ -6,6 +6,7 @@ import MonsterRegistryAbi from "../contracts/abis/MonsterRegistry.json";
 ponder.on("MonsterRegistry:MonsterAdded" as any, async ({ event, context }: any) => {
   console.log("MONSTER ADDED", {
     character: event.args.character.toLowerCase(),
+    index: event.args.index.toString(),
     health: event.args.stats.health.toString()
   });
 
@@ -31,11 +32,13 @@ ponder.on("MonsterRegistry:MonsterAdded" as any, async ({ event, context }: any)
     .values({
       id: event.args.character.toLowerCase(),
       characterAddress: event.args.character.toLowerCase(),
-      health: event.args.stats.health,
+      index: BigInt(event.args.index),
+      health: BigInt(event.args.stats.health),
       registeredAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
-      health: event.args.stats.health,
+      index: BigInt(event.args.index),
+      health: BigInt(event.args.stats.health),
       registeredAt: event.block.timestamp,
     });
 });

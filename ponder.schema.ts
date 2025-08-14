@@ -166,6 +166,7 @@ export const playerAction = onchainTable("playerAction", (t) => ({
 export const monster = onchainTable("monster", (t) => ({
   id: t.text().primaryKey(), // character contract address
   characterAddress: t.text(), // character contract address
+  index: t.bigint(), // monster index in the registry
   health: t.bigint(),
   registeredAt: t.bigint(),
 }));
