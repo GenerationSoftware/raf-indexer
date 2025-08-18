@@ -21,18 +21,25 @@ ponder.on("BattleFactory:CreatedGame" as any, async ({ event, context }: any) =>
       operator: event.args.operator.toLowerCase(),
       joinDeadlineAt: event.args.startAt, // startAt is the join deadline
       turnDuration: event.args.turnDuration,
+      turnTimerEnabled: true, // Default value, actual value would need to be read from contract
       deckConfiguration: event.args.deckConfiguration.toLowerCase(),
       playerStatsStorage: event.args.playerStatsStorage.toLowerCase(),
-      enforceAdjacency: true, // Default value, may be overridden by contract state
+      enforceAdjacency: true, // Default value, actual value would need to be read from contract
       currentTurn: BigInt(0),
       teamAStarts: false, // Will be set when game starts
       teamACount: BigInt(0),
       teamBCount: BigInt(0),
       teamAEliminated: BigInt(0),
       teamBEliminated: BigInt(0),
-      winner: null,
+      winner: BigInt(0),
       gameStartedAt: BigInt(0),
+      gameEndedAt: BigInt(0),
       createdAt: event.block.timestamp,
+      // Turn struct fields - will be updated by GameStartedEvent
+      currentTurnStartedAt: BigInt(0),
+      currentTurnDuration: BigInt(0),
+      currentTurnEndTurnCount: BigInt(0),
+      currentTurnRandomNumber: BigInt(0),
     })
     .onConflictDoUpdate({
       owner: event.args.owner.toLowerCase(),

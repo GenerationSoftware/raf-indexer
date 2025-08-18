@@ -21,7 +21,6 @@ ponder.on("Act:PartyCreatedEvent" as any, async ({ event, context }: any) => {
       isPublic: event.args.isPublic,
       inviter: event.args.inviter.toLowerCase(),
       roomId: BigInt(0), // Default 0 - will be set when party enters a room
-      battleAddress: "", // Default empty - will be set when party enters a room
       state: BigInt(0), // CREATED
       createdTxHash: event.transaction.hash,
       createdAt: event.block.timestamp,
@@ -81,7 +80,6 @@ ponder.on("Act:PartyStartedEvent" as any, async ({ event, context }: any) => {
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
       roomId: roomId,
-      battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(1), // ROOM_CHOSEN
       createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -116,7 +114,6 @@ ponder.on("Act:NextRoomChosenEvent" as any, async ({ event, context }: any) => {
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
       roomId: roomId,
-      battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(1), // ROOM_CHOSEN
       createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -141,7 +138,6 @@ ponder.on("Act:PartyEndedEvent" as any, async ({ event, context }: any) => {
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
       roomId: BigInt(0), // Will be updated by onConflictDoUpdate
-      battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(3), // ESCAPED
       createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -166,7 +162,6 @@ ponder.on("Act:PartyCancelledEvent" as any, async ({ event, context }: any) => {
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
       roomId: BigInt(0), // Will be updated by onConflictDoUpdate
-      battleAddress: "", // Will be updated by onConflictDoUpdate
       state: BigInt(4), // CANCELLED
       createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -189,9 +184,7 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
     partyId: event.args.partyId.toString(),
     roomId: roomId.toString(),
     roomType: room.roomType,
-    monsterIndex1: room.monsterIndex1,
-    monsterIndex2: room.monsterIndex2,
-    monsterIndex3: room.monsterIndex3,
+    roomData: room.roomData,
     nextRooms: room.nextRooms
   });
 
@@ -204,16 +197,12 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
       actAddress: actAddress,
       roomId: roomId,
       roomType: BigInt(room.roomType),
-      monsterIndex1: room.monsterIndex1 ? BigInt(room.monsterIndex1) : BigInt(0),
-      monsterIndex2: room.monsterIndex2 ? BigInt(room.monsterIndex2) : BigInt(0),
-      monsterIndex3: room.monsterIndex3 ? BigInt(room.monsterIndex3) : BigInt(0),
+      roomData: room.roomData || "0x",
       revealedAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
       roomType: BigInt(room.roomType),
-      monsterIndex1: room.monsterIndex1 ? BigInt(room.monsterIndex1) : BigInt(0),
-      monsterIndex2: room.monsterIndex2 ? BigInt(room.monsterIndex2) : BigInt(0),
-      monsterIndex3: room.monsterIndex3 ? BigInt(room.monsterIndex3) : BigInt(0),
+      roomData: room.roomData || "0x",
       revealedAt: event.block.timestamp,
     });
 
@@ -253,7 +242,6 @@ ponder.on("Act:RoomEnteredEvent" as any, async ({ event, context }: any) => {
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
       roomId: roomId,
-      battleAddress: "", // Will be set by BattleRoom:BattleCreated event
       state: BigInt(2), // IN_ROOM
       createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -278,9 +266,6 @@ ponder.on("Act:ActClosedEvent" as any, async ({ event, context }: any) => {
       operator: "", // Will be updated by onConflictDoUpdate
       rngSeed: "", // Will be updated by onConflictDoUpdate
       startingRoomId: BigInt(0),
-      battleFactory: "",
-      playerDeckManager: "",
-      maxDepth: BigInt(0),
       battleFactory: "", // Will be updated by onConflictDoUpdate
       deckConfiguration: "", // Will be updated by onConflictDoUpdate
       monsterRegistry: "", // Will be updated by onConflictDoUpdate

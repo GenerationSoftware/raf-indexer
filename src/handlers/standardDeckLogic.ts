@@ -5,6 +5,7 @@ import { actionDefinition, actionEffect } from "ponder:schema";
 ponder.on("StandardDeckLogic:ActionDefinitionSet" as any, async ({ event, context }: any) => {
   console.log("ACTION DEFINITION SET", {
     actionType: event.args.actionType.toString(),
+    name: event.args.name,
     energy: event.args.actionDefinition.energy.toString(),
     effects: event.args.actionDefinition.effects.length
   });
@@ -19,10 +20,12 @@ ponder.on("StandardDeckLogic:ActionDefinitionSet" as any, async ({ event, contex
       id: actionDefinitionId,
       deckLogicAddress: deckLogicAddress,
       actionType: event.args.actionType,
+      name: event.args.name || "",
       energy: BigInt(event.args.actionDefinition.energy),
       setAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
+      name: event.args.name || "",
       energy: BigInt(event.args.actionDefinition.energy),
       setAt: event.block.timestamp,
     });

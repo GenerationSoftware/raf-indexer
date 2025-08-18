@@ -44,7 +44,6 @@ export const party = onchainTable("party", (t) => ({
   isPublic: t.boolean(),
   inviter: t.text(), // address that created the party
   roomId: t.bigint(), // current room id where party is located
-  battleAddress: t.text(), // battle contract address for the current room
   state: t.bigint(), // PartyState enum: 0=CREATED, 1=ROOM_CHOSEN, 2=IN_ROOM, 3=WON, 4=LOST, 5=CANCELLED
   createdTxHash: t.text(), // transaction hash that created the party
   createdAt: t.bigint(),
@@ -59,15 +58,33 @@ export const partyMember = onchainTable("partyMember", (t) => ({
   joinedAt: t.bigint()
 }));
 
+export const partyRoomBattle = onchainTable("partyRoomBattle", (t) => ({
+  id: t.text().primaryKey(), // partyId + roomId + battleAddress
+  partyId: t.text(),
+  battleAddress: t.text(),
+  roomId: t.bigint(),
+  createdAt: t.bigint(),
+}));
+
 export const actRoom = onchainTable("actRoom", (t) => ({
   id: t.text().primaryKey(), // actAddress + roomId
   actAddress: t.text(),
   roomId: t.bigint(), // roomId (uint32)
   roomType: t.bigint(),
-  monsterIndex1: t.bigint(),
-  monsterIndex2: t.bigint(),
-  monsterIndex3: t.bigint(),
+  roomData: t.text(), // hex encoded room data (varies by room type)
   revealedAt: t.bigint(),
+}));
+
+// BattleRoom specific data
+export const battleRoomData = onchainTable("battleRoomData", (t) => ({
+  id: t.text().primaryKey(), // actAddress + partyId + roomId
+  actAddress: t.text(),
+  partyId: t.text(),
+  roomId: t.bigint(),
+  monsterIndex1: t.bigint(),
+  battleAddress: t.text(),
+  createdAt: t.bigint(),
+  startedAt: t.bigint(),
 }));
 
 // Junction table for room connections (forms a directed graph)
@@ -86,6 +103,7 @@ export const battle = onchainTable("battle", (t) => ({
   operator: t.text(),
   joinDeadlineAt: t.bigint(),
   turnDuration: t.bigint(),
+  turnTimerEnabled: t.boolean(),
   deckConfiguration: t.text(),
   playerStatsStorage: t.text(),
   enforceAdjacency: t.boolean(),
@@ -99,6 +117,11 @@ export const battle = onchainTable("battle", (t) => ({
   gameStartedAt: t.bigint(),
   gameEndedAt: t.bigint(),
   createdAt: t.bigint(),
+  // Turn struct fields
+  currentTurnStartedAt: t.bigint(),
+  currentTurnDuration: t.bigint(),
+  currentTurnEndTurnCount: t.bigint(),
+  currentTurnRandomNumber: t.bigint(),
 }));
 
 // Character tables
@@ -138,6 +161,7 @@ export const battlePlayer = onchainTable("battlePlayer", (t) => ({
   battleAddress: t.text(),
   playerId: t.bigint(),
   character: t.text(), // character contract address
+  deckId: t.bigint(), // deck ID from playerDeckIds
   locationX: t.bigint(), // team column (0=A, 1=B)
   locationY: t.bigint(), // position in team
   teamA: t.boolean(),
@@ -170,6 +194,38 @@ export const monster = onchainTable("monster", (t) => ({
   registeredAt: t.bigint(),
 }));
 
+// Monster cards from MonsterStats
+export const monsterCard = onchainTable("monsterCard", (t) => ({
+  id: t.text().primaryKey(), // characterAddress + cardIndex
+  characterAddress: t.text(), // monster character contract address
+  cardIndex: t.bigint(), // index of the card in the cards array
+  deck: t.text(), // IDeck contract address
+  actionTypes: t.text(), // JSON array of action types
+  registeredAt: t.bigint(),
+}));
+
+// PlayerDeckManager tables
+export const playerDeck = onchainTable("playerDeck", (t) => ({
+  id: t.text().primaryKey(), // playerDeckManagerAddress + deckId
+  playerDeckManagerAddress: t.text(),
+  deckId: t.bigint(),
+  owner: t.text(),
+  createdAt: t.bigint(),
+  destroyedAt: t.bigint(),
+  isActive: t.boolean(),
+}));
+
+export const playerDeckCard = onchainTable("playerDeckCard", (t) => ({
+  id: t.text().primaryKey(), // playerDeckId + cardIndex
+  playerDeckId: t.text(),
+  deckAddress: t.text(), // IDeck contract address
+  cardIndex: t.bigint(),
+  actionType: t.bigint(),
+  location: t.text(), // 'draw', 'hand', 'discard', 'exhausted', 'removed'
+  addedAt: t.bigint(),
+  updatedAt: t.bigint(),
+}));
+
 // PlayerStatsStorage tables
 export const playerStatsStorage = onchainTable("playerStatsStorage", (t) => ({
   id: t.text().primaryKey(), // contract address
@@ -184,6 +240,7 @@ export const actionDefinition = onchainTable("actionDefinition", (t) => ({
   id: t.text().primaryKey(), // deckLogicAddress + actionType
   deckLogicAddress: t.text(),
   actionType: t.bigint(),
+  name: t.text(),
   energy: t.bigint(),
   setAt: t.bigint(),
 }));
@@ -217,10 +274,7 @@ export const partyRelations = relations(party, ({ one, many }) => ({
     references: [act.address],
   }),
   members: many(partyMember),
-  battle: one(battle, {
-    fields: [party.battleAddress],
-    references: [battle.id],
-  })
+  roomBattles: many(partyRoomBattle),
 }));
 
 export const partyMemberRelations = relations(partyMember, ({ one }) => ({
@@ -232,6 +286,17 @@ export const partyMemberRelations = relations(partyMember, ({ one }) => ({
     fields: [partyMember.characterId],
     references: [character.id],
   })
+}));
+
+export const partyRoomBattleRelations = relations(partyRoomBattle, ({ one }) => ({
+  party: one(party, {
+    fields: [partyRoomBattle.partyId],
+    references: [party.id],
+  }),
+  battle: one(battle, {
+    fields: [partyRoomBattle.battleAddress],
+    references: [battle.id],
+  }),
 }));
 
 export const actRoomRelations = relations(actRoom, ({ one, many }) => ({
@@ -272,6 +337,7 @@ export const characterCardRelations = relations(characterCard, ({ one }) => ({
 export const battleRelations = relations(battle, ({ many }) => ({
   players: many(battlePlayer),
   actions: many(playerAction),
+  partyRooms: many(partyRoomBattle),
 }));
 
 export const battlePlayerRelations = relations(battlePlayer, ({ one }) => ({
@@ -282,6 +348,22 @@ export const battlePlayerRelations = relations(battlePlayer, ({ one }) => ({
   character: one(character, {
     fields: [battlePlayer.character],
     references: [character.id]
+  }),
+  deck: one(playerDeck, {
+    fields: [battlePlayer.deckId],
+    references: [playerDeck.deckId]
+  })
+}));
+
+export const playerDeckRelations = relations(playerDeck, ({ many }) => ({
+  battlePlayers: many(battlePlayer),
+  cards: many(playerDeckCard)
+}));
+
+export const playerDeckCardRelations = relations(playerDeckCard, ({ one }) => ({
+  playerDeck: one(playerDeck, {
+    fields: [playerDeckCard.playerDeckId],
+    references: [playerDeck.id]
   })
 }));
 
@@ -306,10 +388,18 @@ export const characterRelations = relations(character, ({ one, many }) => ({
   })
 }));
 
-export const monsterRelations = relations(monster, ({ one }) => ({
+export const monsterRelations = relations(monster, ({ one, many }) => ({
   character: one(character, {
     fields: [monster.characterAddress],
     references: [character.id],
+  }),
+  cards: many(monsterCard),
+}));
+
+export const monsterCardRelations = relations(monsterCard, ({ one }) => ({
+  monster: one(monster, {
+    fields: [monsterCard.characterAddress],
+    references: [monster.characterAddress],
   })
 }));
 

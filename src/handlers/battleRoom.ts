@@ -1,5 +1,5 @@
 import { ponder } from "ponder:registry";
-import { battle, party } from "ponder:schema";
+import { battle, party, battleRoomData, partyRoomBattle } from "ponder:schema";
 
 // BattleRoom: BattleCreated
 ponder.on("BattleRoom:BattleCreated" as any, async ({ event, context }: any) => {
@@ -7,15 +7,54 @@ ponder.on("BattleRoom:BattleCreated" as any, async ({ event, context }: any) => 
   const partyId = event.args.partyId.toString();
   const roomId = BigInt(event.args.roomId || 0);
   const battleAddress = event.args.battle.toLowerCase();
+  
+  // Extract BattleRoomData from event
+  const data = event.args.data;
+  const monsterIndex1 = data ? BigInt(data.monsterIndex1 || 0) : BigInt(0);
 
   console.log("BATTLE CREATED", {
     actAddress: actAddress,
     partyId: partyId,
     roomId: roomId.toString(),
-    battleAddress: battleAddress
+    battleAddress: battleAddress,
+    monsterIndex1: monsterIndex1.toString()
   });
 
-  // Update the party with the battle address
+  // Store BattleRoom specific data
+  await context.db
+    .insert(battleRoomData)
+    .values({
+      id: `${actAddress}-${partyId}-${roomId}`,
+      actAddress: actAddress,
+      partyId: partyId,
+      roomId: roomId,
+      monsterIndex1: monsterIndex1,
+      battleAddress: battleAddress,
+      createdAt: event.block.timestamp,
+      startedAt: BigInt(0),
+    })
+    .onConflictDoUpdate({
+      monsterIndex1: monsterIndex1,
+      battleAddress: battleAddress,
+      createdAt: event.block.timestamp,
+    });
+
+  // Create partyRoomBattle link
+  const partyRoomBattleId = `${actAddress}-${partyId}-${roomId}-${battleAddress}`;
+  await context.db
+    .insert(partyRoomBattle)
+    .values({
+      id: partyRoomBattleId,
+      partyId: `${actAddress}-${partyId}`,
+      battleAddress: battleAddress,
+      roomId: roomId,
+      createdAt: event.block.timestamp,
+    })
+    .onConflictDoUpdate({
+      createdAt: event.block.timestamp,
+    });
+
+  // Update the party state to IN_ROOM
   await context.db
     .insert(party)
     .values({
@@ -26,7 +65,6 @@ ponder.on("BattleRoom:BattleCreated" as any, async ({ event, context }: any) => 
       isPublic: false, // Will be updated by onConflictDoUpdate
       inviter: "", // Will be updated by onConflictDoUpdate
       roomId: roomId,
-      battleAddress: battleAddress,
       state: BigInt(2), // IN_ROOM - battles are created when entering a room
       createdTxHash: "", // Will be updated by onConflictDoUpdate
       createdAt: BigInt(0), // Will be updated by onConflictDoUpdate
@@ -34,8 +72,15 @@ ponder.on("BattleRoom:BattleCreated" as any, async ({ event, context }: any) => 
       endedAt: BigInt(0), // Will be updated by onConflictDoUpdate
     })
     .onConflictDoUpdate({
-      battleAddress: battleAddress,
+      roomId: roomId,
+      state: BigInt(2), // IN_ROOM
     });
+
+  const init = {
+    createdAt: event.block.timestamp,
+    enforceAdjacency: false,
+    turnTimerEnabled: false
+  }
 
   // Create the battle entity
   await context.db
@@ -48,7 +93,6 @@ ponder.on("BattleRoom:BattleCreated" as any, async ({ event, context }: any) => 
       turnDuration: BigInt(0), // Will be set from Battle contract events
       deckConfiguration: "", // Will be set from Battle contract events
       playerStatsStorage: "", // Will be set from Battle contract events
-      enforceAdjacency: false, // Will be set from Battle contract events
       currentTurn: BigInt(0),
       teamAStarts: false,
       teamACount: BigInt(0),
@@ -58,11 +102,14 @@ ponder.on("BattleRoom:BattleCreated" as any, async ({ event, context }: any) => 
       winner: BigInt(0),
       gameStartedAt: BigInt(0),
       gameEndedAt: BigInt(0),
-      createdAt: event.block.timestamp,
+      // Turn struct fields - will be updated by GameStartedEvent
+      currentTurnStartedAt: BigInt(0),
+      currentTurnDuration: BigInt(0),
+      currentTurnEndTurnCount: BigInt(0),
+      currentTurnRandomNumber: BigInt(0),
+      ...init
     })
-    .onConflictDoUpdate({
-      createdAt: event.block.timestamp,
-    });
+    .onConflictDoUpdate(init);
 });
 
 // BattleRoom: BattleStarted
@@ -77,21 +124,39 @@ ponder.on("BattleRoom:BattleStarted" as any, async ({ event, context }: any) => 
     roomId: roomId.toString()
   });
 
-  // Get the battle address for this party and room
-  const partyData = await context.db.find(party, {
-    id: actAddress + "-" + partyId
+  // Update the battleRoomData startedAt timestamp
+  await context.db
+    .insert(battleRoomData)
+    .values({
+      id: `${actAddress}-${partyId}-${roomId}`,
+      actAddress: actAddress,
+      partyId: partyId,
+      roomId: roomId,
+      monsterIndex1: BigInt(0), // Will be kept from onConflictDoUpdate
+      battleAddress: "", // Will be kept from onConflictDoUpdate
+      createdAt: BigInt(0), // Will be kept from onConflictDoUpdate
+      startedAt: event.block.timestamp,
+    })
+    .onConflictDoUpdate({
+      startedAt: event.block.timestamp,
+    });
+
+  // Get the battle address for this party and room from battleRoomData
+  const battleRoomInfo = await context.db.find(battleRoomData, {
+    id: `${actAddress}-${partyId}-${roomId}`
   });
 
-  if (partyData && partyData.battleAddress) {
+  if (battleRoomInfo && battleRoomInfo.battleAddress) {
     // Update the battle's gameStartedAt timestamp
     await context.db
       .insert(battle)
       .values({
-        id: partyData.battleAddress,
+        id: battleRoomInfo.battleAddress,
         owner: "",
         operator: "",
         joinDeadlineAt: BigInt(0),
         turnDuration: BigInt(0),
+        turnTimerEnabled: false,
         deckConfiguration: "",
         playerStatsStorage: "",
         enforceAdjacency: false,
@@ -105,6 +170,11 @@ ponder.on("BattleRoom:BattleStarted" as any, async ({ event, context }: any) => 
         gameStartedAt: event.block.timestamp,
         gameEndedAt: BigInt(0),
         createdAt: BigInt(0),
+        // Turn struct fields - will be updated by GameStartedEvent
+        currentTurnStartedAt: BigInt(0),
+        currentTurnDuration: BigInt(0),
+        currentTurnEndTurnCount: BigInt(0),
+        currentTurnRandomNumber: BigInt(0),
       })
       .onConflictDoUpdate({
         gameStartedAt: event.block.timestamp,

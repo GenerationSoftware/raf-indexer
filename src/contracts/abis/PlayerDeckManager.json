@@ -186,25 +186,7 @@
   {
     "type": "function",
     "name": "createDeck",
-    "inputs": [
-      {
-        "name": "tokens",
-        "type": "tuple[]",
-        "internalType": "struct Token[]",
-        "components": [
-          {
-            "name": "deck",
-            "type": "address",
-            "internalType": "contract IDeck"
-          },
-          {
-            "name": "tokenId",
-            "type": "uint96",
-            "internalType": "uint96"
-          }
-        ]
-      }
-    ],
+    "inputs": [],
     "outputs": [
       {
         "name": "deckId",
@@ -276,6 +258,35 @@
       }
     ],
     "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "discardAndDrawHand",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "count",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "random",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "drawnCards",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
@@ -909,6 +920,158 @@
   },
   {
     "type": "event",
+    "name": "CardAddedToDiscardPile",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "cardId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CardAddedToDrawPile",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "cardId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CardAddedToHand",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "cardId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CardDiscarded",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "cardId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CardDrawn",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "cardId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CardExhausted",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "cardId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CardRemoved",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "cardId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CardsDrawn",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "cardIds",
+        "type": "uint256[]",
+        "indexed": false,
+        "internalType": "uint256[]"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "DeckCreated",
     "inputs": [
       {
@@ -947,6 +1110,83 @@
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeckReset",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DiscardReshuffledIntoDraw",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ExhaustedCardsAddedToDrawPile",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "count",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "HandDiscarded",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "HandDiscardedAndRedrawn",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "drawnCards",
+        "type": "uint256[]",
+        "indexed": false,
+        "internalType": "uint256[]"
       }
     ],
     "anonymous": false
@@ -1108,11 +1348,6 @@
   {
     "type": "error",
     "name": "NoCardsAvailableToDraw",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NoTokensProvidedError",
     "inputs": []
   },
   {
