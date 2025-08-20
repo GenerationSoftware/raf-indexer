@@ -185,6 +185,52 @@
   },
   {
     "type": "function",
+    "name": "computeDiscardAndDrawHand",
+    "inputs": [
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "count",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "random",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct CardPileState",
+        "components": [
+          {
+            "name": "drawPile",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "hand",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "discardPile",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "createDeck",
     "inputs": [],
     "outputs": [
@@ -282,9 +328,26 @@
     ],
     "outputs": [
       {
-        "name": "drawnCards",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct CardPileState",
+        "components": [
+          {
+            "name": "drawPile",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "hand",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "discardPile",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
       }
     ],
     "stateMutability": "nonpayable"
@@ -641,19 +704,26 @@
     ],
     "outputs": [
       {
-        "name": "drawPile",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "hand",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "discardPile",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct CardPileState",
+        "components": [
+          {
+            "name": "drawPile",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "hand",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "discardPile",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
       }
     ],
     "stateMutability": "view"
@@ -933,6 +1003,18 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      },
+      {
+        "name": "deck",
+        "type": "address",
+        "indexed": false,
+        "internalType": "contract IDeck"
+      },
+      {
+        "name": "actionType",
+        "type": "uint96",
+        "indexed": false,
+        "internalType": "uint96"
       }
     ],
     "anonymous": false
@@ -952,6 +1034,18 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      },
+      {
+        "name": "deck",
+        "type": "address",
+        "indexed": false,
+        "internalType": "contract IDeck"
+      },
+      {
+        "name": "actionType",
+        "type": "uint96",
+        "indexed": false,
+        "internalType": "uint96"
       }
     ],
     "anonymous": false
@@ -971,6 +1065,18 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      },
+      {
+        "name": "deck",
+        "type": "address",
+        "indexed": false,
+        "internalType": "contract IDeck"
+      },
+      {
+        "name": "actionType",
+        "type": "uint96",
+        "indexed": false,
+        "internalType": "uint96"
       }
     ],
     "anonymous": false

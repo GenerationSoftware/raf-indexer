@@ -1,37 +1,22 @@
 import { ponder } from "ponder:registry";
-import { battlePlayer, battle, playerStatsStorage } from "ponder:schema";
+import { battlePlayer, battle } from "ponder:schema";
 import PlayerStatsStorageAbi from "../contracts/abis/PlayerStatsStorage.json";
 
 // PlayerStatsStorage: PlayerStatUpdatedEvent
 ponder.on("PlayerStatsStorage:PlayerStatUpdatedEvent" as any, async ({ event, context }: any) => {
   console.log("PLAYER STAT UPDATED", {
+    operator: event.args.operator.toLowerCase(),
     playerId: event.args.playerId.toString(),
     teamA: event.args.stats.teamA,
     turn: event.args.stats.turn,
     statsData: event.args.stats.stats
   });
 
-  // Read the operator from the PlayerStatsStorage contract (this is the battle address)
-  let battleAddress = "";
-  try {
-    const operatorResult = await context.client.readContract({
-      address: event.log.address as `0x${string}`,
-      abi: PlayerStatsStorageAbi,
-      functionName: "operator",
-      args: []
-    });
-    battleAddress = operatorResult?.toLowerCase() || "";
-    console.log("PLAYER STATS STORAGE OPERATOR", {
-      playerStatsStorage: event.log.address.toLowerCase(),
-      battleAddress: battleAddress
-    });
-  } catch (error) {
-    console.log("Failed to read PlayerStatsStorage operator:", error);
-    return;
-  }
-
+  // The operator (battle address) is now directly in the event args
+  const battleAddress = event.args.operator.toLowerCase();
+  
   if (!battleAddress) {
-    console.log("No operator found for PlayerStatsStorage:", event.log.address.toLowerCase());
+    console.log("No operator found in event");
     return;
   }
 
@@ -74,46 +59,55 @@ ponder.on("PlayerStatsStorage:PlayerStatUpdatedEvent" as any, async ({ event, co
   });
 });
 
-// PlayerStatsStorage: OwnershipTransferred
-ponder.on("PlayerStatsStorage:OwnershipTransferred" as any, async ({ event, context }: any) => {
-  console.log("PLAYER STATS STORAGE OWNERSHIP TRANSFERRED", {
-    previousOwner: event.args.previousOwner.toLowerCase(),
-    newOwner: event.args.newOwner.toLowerCase()
+// PlayerStatsStorage: PlayerStatsClonedEvent
+ponder.on("PlayerStatsStorage:PlayerStatsClonedEvent" as any, async ({ event, context }: any) => {
+  console.log("PLAYER STATS CLONED", {
+    fromOperator: event.args.fromOperator.toLowerCase(),
+    fromPlayerId: event.args.fromPlayerId.toString(),
+    toOperator: event.args.toOperator.toLowerCase(),
+    toPlayerId: event.args.toPlayerId.toString()
   });
 
-  // Create or update PlayerStatsStorage entity
-  await context.db
-    .insert(playerStatsStorage)
-    .values({
-      id: event.log.address.toLowerCase(),
-      trustedForwarder: "", // Will be set if we have this info
-      owner: event.args.newOwner.toLowerCase(),
-      operator: "", // Will be set when OperatorTransferred is called
-      createdAt: event.block.timestamp,
-    })
-    .onConflictDoUpdate({
-      owner: event.args.newOwner.toLowerCase(),
-    });
-});
+  // Handle cloning of player stats from one operator/player to another
+  // This might be used when transferring stats between battles or contexts
+  const fromBattlePlayerId = event.args.fromOperator.toLowerCase() + "-" + event.args.fromPlayerId.toString();
+  const toBattlePlayerId = event.args.toOperator.toLowerCase() + "-" + event.args.toPlayerId.toString();
 
-// PlayerStatsStorage: OperatorTransferred
-ponder.on("PlayerStatsStorage:OperatorTransferred" as any, async ({ event, context }: any) => {
-  console.log("PLAYER STATS STORAGE OPERATOR TRANSFERRED", {
-    previousOperator: event.args.previousOperator.toLowerCase(),
-    newOperator: event.args.newOperator.toLowerCase()
-  });
+  // Get the source player stats
+  const sourcePlayer = await context.db.find(battlePlayer, { id: fromBattlePlayerId });
+  
+  if (sourcePlayer && sourcePlayer.statsData) {
+    // Find or create the target player
+    const targetPlayer = await context.db.find(battlePlayer, { id: toBattlePlayerId });
+    
+    if (targetPlayer) {
+      // Update the target player with cloned stats
+      await context.db
+        .insert(battlePlayer)
+        .values({
+          id: targetPlayer.id,
+          battleAddress: targetPlayer.battleAddress,
+          playerId: targetPlayer.playerId,
+          character: targetPlayer.character,
+          locationX: targetPlayer.locationX,
+          locationY: targetPlayer.locationY,
+          teamA: targetPlayer.teamA,
+          joinedAt: targetPlayer.joinedAt,
+          eliminated: targetPlayer.eliminated,
+          eliminatedAt: targetPlayer.eliminatedAt,
+          statsLastUpdatedTurn: sourcePlayer.statsLastUpdatedTurn,
+          statsData: sourcePlayer.statsData,
+        })
+        .onConflictDoUpdate({
+          statsLastUpdatedTurn: sourcePlayer.statsLastUpdatedTurn,
+          statsData: sourcePlayer.statsData,
+        });
 
-  // Create or update PlayerStatsStorage entity
-  await context.db
-    .insert(playerStatsStorage)
-    .values({
-      id: event.log.address.toLowerCase(),
-      trustedForwarder: "", // Will be set if we have this info
-      owner: "", // Will be set when OwnershipTransferred is called
-      operator: event.args.newOperator.toLowerCase(),
-      createdAt: event.block.timestamp,
-    })
-    .onConflictDoUpdate({
-      operator: event.args.newOperator.toLowerCase(),
-    });
+      console.log("CLONED BATTLE PLAYER STATS", {
+        from: fromBattlePlayerId,
+        to: toBattlePlayerId,
+        statsData: sourcePlayer.statsData
+      });
+    }
+  }
 });

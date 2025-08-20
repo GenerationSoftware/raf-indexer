@@ -60,18 +60,22 @@ ponder.on("Battle:PlayerJoinedEvent" as any, async ({ event, context }: any) => 
       battleAddress: event.log.address.toLowerCase(),
       playerId: event.args.playerId,
       character: event.args.character.toLowerCase(),
+      deckId: event.args.deckId,
       locationX: event.args.locationX,
       locationY: event.args.locationY,
       teamA: event.args.locationX === BigInt(0), // Team A is column 0
       joinedAt: event.block.timestamp,
       eliminated: false,
       eliminatedAt: BigInt(0),
+      lastEndedTurn: BigInt(0),
+      lastTurnHandDrawn: BigInt(0),
       // Set stats from PlayerStatsStorage contract
       statsLastUpdatedTurn: BigInt(currentStats.turn),
       statsData: currentStats.stats,
     })
     .onConflictDoUpdate({
       character: event.args.character.toLowerCase(),
+      deckId: event.args.deckId,
       locationX: event.args.locationX,
       locationY: event.args.locationY,
       joinedAt: event.block.timestamp,
@@ -174,7 +178,8 @@ ponder.on("Battle:GameStartedEvent" as any, async ({ event, context }: any) => {
   console.log("BATTLE GAME STARTED", {
     battleAddress: event.log.address.toLowerCase(),
     startedAt: event.args.startedAt.toString(),
-    teamAStarts: event.args.teamAStarts
+    teamAStarts: event.args.teamAStarts,
+    turnData: event.args.turnData
   });
 
   await context.db
@@ -184,12 +189,22 @@ ponder.on("Battle:GameStartedEvent" as any, async ({ event, context }: any) => {
       gameStartedAt: event.args.startedAt,
       teamAStarts: event.args.teamAStarts,
       currentTurn: BigInt(1),
+      // Turn struct fields
+      currentTurnStartedAt: event.args.turnData.startedAt,
+      currentTurnDuration: event.args.turnData.duration,
+      currentTurnEndTurnCount: event.args.turnData.endTurnCount,
+      currentTurnRandomNumber: event.args.turnData.randomNumber,
       createdAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
       gameStartedAt: event.args.startedAt,
       teamAStarts: event.args.teamAStarts,
       currentTurn: BigInt(1),
+      // Turn struct fields
+      currentTurnStartedAt: event.args.turnData.startedAt,
+      currentTurnDuration: event.args.turnData.duration,
+      currentTurnEndTurnCount: event.args.turnData.endTurnCount,
+      currentTurnRandomNumber: event.args.turnData.randomNumber,
     });
 });
 
@@ -219,7 +234,8 @@ ponder.on("Battle:GameEndedEvent" as any, async ({ event, context }: any) => {
 ponder.on("Battle:NextTurnEvent" as any, async ({ event, context }: any) => {
   console.log("BATTLE NEXT TURN", {
     battleAddress: event.log.address.toLowerCase(),
-    turn: event.args.turn.toString()
+    turn: event.args.turn.toString(),
+    turnData: event.args.turnData
   });
 
   // Update battle current turn
@@ -228,10 +244,53 @@ ponder.on("Battle:NextTurnEvent" as any, async ({ event, context }: any) => {
     .values({
       id: event.log.address.toLowerCase(),
       currentTurn: event.args.turn,
+      // Turn struct fields
+      currentTurnStartedAt: event.args.turnData.startedAt,
+      currentTurnDuration: event.args.turnData.duration,
+      currentTurnEndTurnCount: event.args.turnData.endTurnCount,
+      currentTurnRandomNumber: event.args.turnData.randomNumber,
       createdAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
       currentTurn: event.args.turn,
+      // Turn struct fields
+      currentTurnStartedAt: event.args.turnData.startedAt,
+      currentTurnDuration: event.args.turnData.duration,
+      currentTurnEndTurnCount: event.args.turnData.endTurnCount,
+      currentTurnRandomNumber: event.args.turnData.randomNumber,
+    });
+});
+
+// Battle: PlayerHandDrawn
+ponder.on("Battle:PlayerHandDrawn" as any, async ({ event, context }: any) => {
+  console.log("BATTLE PLAYER HAND DRAWN", {
+    battleAddress: event.log.address.toLowerCase(),
+    playerId: event.args.playerId.toString(),
+    turn: event.args.turn.toString()
+  });
+
+  // Update the player's lastTurnHandDrawn
+  await context.db
+    .insert(battlePlayer)
+    .values({
+      id: event.log.address.toLowerCase() + "-" + event.args.playerId.toString(),
+      battleAddress: event.log.address.toLowerCase(),
+      playerId: event.args.playerId,
+      character: "", // Will be preserved from existing record
+      deckId: BigInt(0), // Will be preserved from existing record
+      locationX: BigInt(0), // Will be preserved from existing record
+      locationY: BigInt(0), // Will be preserved from existing record
+      teamA: false, // Will be preserved from existing record
+      joinedAt: BigInt(0), // Will be preserved from existing record
+      eliminated: false, // Will be preserved from existing record
+      eliminatedAt: BigInt(0), // Will be preserved from existing record
+      lastEndedTurn: BigInt(0), // Will be preserved from existing record
+      lastTurnHandDrawn: event.args.turn,
+      statsLastUpdatedTurn: BigInt(0), // Will be preserved from existing record
+      statsData: "", // Will be preserved from existing record
+    })
+    .onConflictDoUpdate({
+      lastTurnHandDrawn: event.args.turn
     });
 });
 

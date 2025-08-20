@@ -75,12 +75,7 @@ export default createConfig({
     PlayerStatsStorage: {
       chain: "custom",
       abi: PlayerStatsStorageAbi as Abi,
-      address: factory({
-        address: getDeployment("BattleFactory").address,
-        event: BattleFactoryAbi.find((val) => val.type === "event" && val.name === "CreatedGame") as AbiEvent,
-        parameter: "playerStatsStorage"
-      }),
-      startBlock: getDeployment("BattleFactory").startBlock
+      ...getDeployment("PlayerStatsStorage"),
     },
     CharacterFactory: {
       chain: "custom",

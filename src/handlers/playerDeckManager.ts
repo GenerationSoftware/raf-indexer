@@ -66,30 +66,34 @@ ponder.on("PlayerDeckManager:CardAddedToDrawPile" as any, async ({ event, contex
   const playerDeckManagerAddress = event.log.address.toLowerCase();
   const deckId = event.args.deckId;
   const cardId = event.args.cardId;
+  const deck = event.args.deck.toLowerCase();
+  const actionType = event.args.actionType;
   
   const playerDeckId = `${playerDeckManagerAddress}-${deckId}`;
   const cardEntityId = `${playerDeckId}-${cardId}`;
 
   console.log("CARD ADDED TO DRAW PILE", {
     deckId: deckId.toString(),
-    cardId: cardId.toString()
+    cardId: cardId.toString(),
+    deck: deck,
+    actionType: actionType.toString()
   });
 
-  // Note: We need the deck address and action type from somewhere
-  // This might need to be fetched from the contract or passed in the event
   await context.db
     .insert(playerDeckCard)
     .values({
       id: cardEntityId,
       playerDeckId,
-      deckAddress: "", // This needs to be populated from contract data
+      deckAddress: deck,
       cardIndex: BigInt(cardId),
-      actionType: 0n, // This needs to be populated from contract data
+      actionType: BigInt(actionType),
       location: "draw",
       addedAt: event.block.timestamp,
       updatedAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
+      deckAddress: deck,
+      actionType: BigInt(actionType),
       location: "draw",
       updatedAt: event.block.timestamp,
     });
@@ -99,13 +103,17 @@ ponder.on("PlayerDeckManager:CardAddedToHand" as any, async ({ event, context }:
   const playerDeckManagerAddress = event.log.address.toLowerCase();
   const deckId = event.args.deckId;
   const cardId = event.args.cardId;
+  const deck = event.args.deck.toLowerCase();
+  const actionType = event.args.actionType;
   
   const playerDeckId = `${playerDeckManagerAddress}-${deckId}`;
   const cardEntityId = `${playerDeckId}-${cardId}`;
 
   console.log("CARD ADDED TO HAND", {
     deckId: deckId.toString(),
-    cardId: cardId.toString()
+    cardId: cardId.toString(),
+    deck: deck,
+    actionType: actionType.toString()
   });
 
   await context.db
@@ -113,14 +121,16 @@ ponder.on("PlayerDeckManager:CardAddedToHand" as any, async ({ event, context }:
     .values({
       id: cardEntityId,
       playerDeckId,
-      deckAddress: "", // This needs to be populated from contract data
+      deckAddress: deck,
       cardIndex: BigInt(cardId),
-      actionType: 0n, // This needs to be populated from contract data
+      actionType: BigInt(actionType),
       location: "hand",
       addedAt: event.block.timestamp,
       updatedAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
+      deckAddress: deck,
+      actionType: BigInt(actionType),
       location: "hand",
       updatedAt: event.block.timestamp,
     });
@@ -130,13 +140,17 @@ ponder.on("PlayerDeckManager:CardAddedToDiscardPile" as any, async ({ event, con
   const playerDeckManagerAddress = event.log.address.toLowerCase();
   const deckId = event.args.deckId;
   const cardId = event.args.cardId;
+  const deck = event.args.deck.toLowerCase();
+  const actionType = event.args.actionType;
   
   const playerDeckId = `${playerDeckManagerAddress}-${deckId}`;
   const cardEntityId = `${playerDeckId}-${cardId}`;
 
   console.log("CARD ADDED TO DISCARD PILE", {
     deckId: deckId.toString(),
-    cardId: cardId.toString()
+    cardId: cardId.toString(),
+    deck: deck,
+    actionType: actionType.toString()
   });
 
   await context.db
@@ -144,14 +158,16 @@ ponder.on("PlayerDeckManager:CardAddedToDiscardPile" as any, async ({ event, con
     .values({
       id: cardEntityId,
       playerDeckId,
-      deckAddress: "", // This needs to be populated from contract data
+      deckAddress: deck,
       cardIndex: BigInt(cardId),
-      actionType: 0n, // This needs to be populated from contract data
+      actionType: BigInt(actionType),
       location: "discard",
       addedAt: event.block.timestamp,
       updatedAt: event.block.timestamp,
     })
     .onConflictDoUpdate({
+      deckAddress: deck,
+      actionType: BigInt(actionType),
       location: "discard",
       updatedAt: event.block.timestamp,
     });

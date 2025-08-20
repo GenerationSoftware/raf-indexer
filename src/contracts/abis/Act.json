@@ -26,6 +26,11 @@
         "name": "_playerDeckManager",
         "type": "address",
         "internalType": "contract PlayerDeckManager"
+      },
+      {
+        "name": "_playerStatsStorage",
+        "type": "address",
+        "internalType": "contract PlayerStatsStorage"
       }
     ],
     "stateMutability": "nonpayable"
@@ -267,6 +272,42 @@
   },
   {
     "type": "function",
+    "name": "getPlayerStats",
+    "inputs": [
+      {
+        "name": "playerId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct PlayerStats",
+        "components": [
+          {
+            "name": "teamA",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "turn",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "stats",
+            "type": "bytes30",
+            "internalType": "bytes30"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "isClosed",
     "inputs": [],
     "outputs": [
@@ -324,6 +365,25 @@
         "name": "_partyId",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isStatOperator",
+    "inputs": [
+      {
+        "name": "operator",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [
@@ -633,6 +693,30 @@
   },
   {
     "type": "function",
+    "name": "partyMemberAtIndex",
+    "inputs": [
+      {
+        "name": "_partyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract Character"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "partyMembers",
     "inputs": [
       {
@@ -651,6 +735,25 @@
         "name": "members",
         "type": "address",
         "internalType": "contract Character"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "partyMembersCount",
+    "inputs": [
+      {
+        "name": "_partyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -688,6 +791,19 @@
         "name": "",
         "type": "address",
         "internalType": "contract PlayerDeckManager"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "playerStatsStorage",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract PlayerStatsStorage"
       }
     ],
     "stateMutability": "view"

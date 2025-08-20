@@ -6,19 +6,6 @@
   },
   {
     "type": "function",
-    "name": "DEFAULT_HEALTH",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "DRAW_COUNT",
     "inputs": [],
     "outputs": [
@@ -39,19 +26,6 @@
         "name": "",
         "type": "uint256",
         "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "STARTING_ENERGY",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint8",
-        "internalType": "uint8"
       }
     ],
     "stateMutability": "view"
@@ -480,6 +454,25 @@
   },
   {
     "type": "function",
+    "name": "isStatOperator",
+    "inputs": [
+      {
+        "name": "operator",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "isSufficientPlayers",
     "inputs": [],
     "outputs": [
@@ -622,6 +615,28 @@
         "name": "_deckId",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "_playerStats",
+        "type": "tuple",
+        "internalType": "struct PlayerStats",
+        "components": [
+          {
+            "name": "teamA",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "turn",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "stats",
+            "type": "bytes30",
+            "internalType": "bytes30"
+          }
+        ]
       }
     ],
     "outputs": [
@@ -885,6 +900,41 @@
         "name": "data",
         "type": "bytes",
         "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setPlayerStats",
+    "inputs": [
+      {
+        "name": "_playerId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_stats",
+        "type": "tuple",
+        "internalType": "struct PlayerStats",
+        "components": [
+          {
+            "name": "teamA",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "turn",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "stats",
+            "type": "bytes30",
+            "internalType": "bytes30"
+          }
+        ]
       }
     ],
     "outputs": [],
@@ -1321,6 +1371,25 @@
   },
   {
     "type": "event",
+    "name": "PlayerHandDrawn",
+    "inputs": [
+      {
+        "name": "playerId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "turn",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "PlayerJoinedEvent",
     "inputs": [
       {
@@ -1346,6 +1415,12 @@
         "type": "address",
         "indexed": true,
         "internalType": "contract Character"
+      },
+      {
+        "name": "deckId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false

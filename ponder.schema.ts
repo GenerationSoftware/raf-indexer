@@ -169,6 +169,7 @@ export const battlePlayer = onchainTable("battlePlayer", (t) => ({
   eliminated: t.boolean(),
   eliminatedAt: t.bigint(),
   lastEndedTurn: t.bigint(),
+  lastTurnHandDrawn: t.bigint(), // turn when player last drew their hand
   // Player stats from PlayerStatsStorage
   statsLastUpdatedTurn: t.bigint(), // turn when stats were last updated
   statsData: t.text(), // hex encoded bytes30 stats data
@@ -226,15 +227,6 @@ export const playerDeckCard = onchainTable("playerDeckCard", (t) => ({
   updatedAt: t.bigint(),
 }));
 
-// PlayerStatsStorage tables
-export const playerStatsStorage = onchainTable("playerStatsStorage", (t) => ({
-  id: t.text().primaryKey(), // contract address
-  trustedForwarder: t.text(),
-  owner: t.text(),
-  operator: t.text(), // this is the Battle contract
-  createdAt: t.bigint(),
-}));
-
 // BasicDeckLogic tables
 export const actionDefinition = onchainTable("actionDefinition", (t) => ({
   id: t.text().primaryKey(), // deckLogicAddress + actionType
@@ -263,9 +255,25 @@ export const deckConfiguration = onchainTable("deckConfiguration", (t) => ({
 }));
 
 // Relations - Simple and safe
+export const seasonRelations = relations(season, ({ many }) => ({
+  seasonActs: many(seasonAct),
+}));
+
+export const seasonActRelations = relations(seasonAct, ({ one }) => ({
+  season: one(season, {
+    fields: [seasonAct.seasonAddress],
+    references: [season.address],
+  }),
+  act: one(act, {
+    fields: [seasonAct.actAddress],
+    references: [act.address],
+  }),
+}));
+
 export const actRelations = relations(act, ({ many }) => ({
   parties: many(party),
   rooms: many(actRoom),
+  seasonActs: many(seasonAct),
 }));
 
 export const partyRelations = relations(party, ({ one, many }) => ({
@@ -364,6 +372,10 @@ export const playerDeckCardRelations = relations(playerDeckCard, ({ one }) => ({
   playerDeck: one(playerDeck, {
     fields: [playerDeckCard.playerDeckId],
     references: [playerDeck.id]
+  }),
+  actionDefinition: one(actionDefinition, {
+    fields: [playerDeckCard.actionType],
+    references: [actionDefinition.actionType]
   })
 }));
 

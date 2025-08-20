@@ -521,11 +521,6 @@
   },
   {
     "type": "error",
-    "name": "AlreadyWonActError",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "InvalidActIndexError",
     "inputs": []
   },

@@ -36,6 +36,11 @@
         "name": "_playerDeckManager",
         "type": "address",
         "internalType": "contract PlayerDeckManager"
+      },
+      {
+        "name": "_playerStatsStorage",
+        "type": "address",
+        "internalType": "contract PlayerStatsStorage"
       }
     ],
     "stateMutability": "nonpayable"
@@ -232,6 +237,29 @@
   },
   {
     "type": "function",
+    "name": "leaveRoom",
+    "inputs": [
+      {
+        "name": "actAddress",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "partyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "roomId",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "monsterRegistry",
     "inputs": [],
     "outputs": [
@@ -307,6 +335,19 @@
         "name": "",
         "type": "address",
         "internalType": "contract PlayerDeckManager"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "playerStatsStorage",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract PlayerStatsStorage"
       }
     ],
     "stateMutability": "view"
